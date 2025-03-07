@@ -1,82 +1,21 @@
 #!/bin/bash
+# Script to fix the Docker Compose services setup
+# This creates proper configuration files and updates the Docker Compose file
 
-# Variables
-BASE_DIR="$(pwd)/services"
-VAULT_VERSION="1.15.5"
-REDIS_VERSION="7.0.5"
-QDRANT_VERSION="v1.1.1"
-MONGODB_VERSION="6.0"
+set -e  # Exit on any error
 
-# Functions
+echo "Setting up services directory structure and configurations..."
 
-# Function: Create base directory structure
-create_directory_structure() {
-    echo "Creating directory structure..."
-    mkdir -p "$BASE_DIR"/{vault,redis,qdrant,mongodb}/{data,config,logos}
-    
-    # Create specific subdirectories for each service
-    mkdir -p "$BASE_DIR/vault/data"
-    mkdir -p "$BASE_DIR/redis/data"
-    mkdir -p "$BASE_DIR/qdrant/data"
-    mkdir -p "$BASE_DIR/mongodb/data"
-    
-    echo "Directory structure created successfully!"
-}
+# Create base directories for services
+mkdir -p services
 
-# Function: Download logos for services
-download_logos() {
-    echo "Downloading logos for services..."
-    
-    # Vault logo
-    curl -s -o "$BASE_DIR/vault/logos/vault-logo.png" "https://www.datocms-assets.com/2885/1620155439-brandhcvaultverticalcolor.svg" || {
-        echo "Error downloading Vault logo."
-    }
-    
-    # Redis logo
-    curl -s -o "$BASE_DIR/redis/logos/redis-logo.png" "https://redis.io/images/redis-logo.svg" || {
-        echo "Error downloading Redis logo."
-    }
-    
-    # Qdrant logo
-    curl -s -o "$BASE_DIR/qdrant/logos/qdrant-logo.png" "https://qdrant.tech/images/logo.svg" || {
-        echo "Error downloading Qdrant logo."
-    }
-    
-    # MongoDB logo
-    curl -s -o "$BASE_DIR/mongodb/logos/mongodb-logo.png" "https://www.mongodb.com/assets/images/global/leaf.svg" || {
-        echo "Error downloading MongoDB logo."
-    }
-    
-    echo "Logos downloaded successfully!"
-}
+# ===================
+# VAULT CONFIGURATION
+# ===================
+mkdir -p services/vault/{data,logs,config,logos}
 
-# Function: Create Vault Dockerfile
-create_vault_dockerfile() {
-    echo "Creating Vault Dockerfile..."
-    cat << EOF > "$BASE_DIR/vault/Dockerfile"
-FROM alpine:3.17
-
-ARG VAULT_VERSION=$VAULT_VERSION
-
-RUN apk add --no-cache curl unzip libcap && \\
-    curl -Lo /tmp/vault.zip https://releases.hashicorp.com/vault/\${VAULT_VERSION}/vault_\${VAULT_VERSION}_linux_amd64.zip && \\
-    unzip /tmp/vault.zip -d /bin && \\
-    rm -f /tmp/vault.zip && \\
-    setcap cap_ipc_lock=+ep /bin/vault
-
-VOLUME /vault/data
-VOLUME /vault/config
-VOLUME /vault/logs
-
-EXPOSE 8200
-
-COPY ./config/config.hcl /vault/config/config.hcl
-
-ENTRYPOINT ["vault", "server", "-config=/vault/config/config.hcl"]
-EOF
-
-    # Create Vault config
-    cat << EOF > "$BASE_DIR/vault/config/config.hcl"
+# Create Vault configuration file
+cat > services/vault/config/config.hcl << 'EOF'
 ui = true
 disable_mlock = true
 
@@ -92,27 +31,37 @@ listener "tcp" {
 api_addr = "http://0.0.0.0:8200"
 cluster_addr = "http://0.0.0.0:8201"
 EOF
-    
-    echo "Vault Dockerfile created successfully!"
-}
 
-# Function: Create Redis Dockerfile
-create_redis_dockerfile() {
-    echo "Creating Redis Dockerfile..."
-    cat << EOF > "$BASE_DIR/redis/Dockerfile"
-FROM redis:$REDIS_VERSION
+# Create Vault Dockerfile
+cat > services/vault/Dockerfile << 'EOF'
+FROM alpine:3.17
 
-VOLUME /data
+ARG VAULT_VERSION=1.15.5
 
-COPY ./config/redis.conf /usr/local/etc/redis/redis.conf
+RUN apk add --no-cache curl unzip libcap && \
+    curl -Lo /tmp/vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip && \
+    unzip /tmp/vault.zip -d /bin && \
+    rm -f /tmp/vault.zip && \
+    setcap cap_ipc_lock=+ep /bin/vault
 
-EXPOSE 6379
+VOLUME /vault/data
+VOLUME /vault/config
+VOLUME /vault/logs
 
-CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]
+EXPOSE 8200
+
+COPY config/config.hcl /vault/config/config.hcl
+
+ENTRYPOINT ["vault", "server", "-config=/vault/config/config.hcl"]
 EOF
 
-    # Create Redis config
-    cat << EOF > "$BASE_DIR/redis/config/redis.conf"
+# ==================
+# REDIS CONFIGURATION
+# ==================
+mkdir -p services/redis/{data,config,logos}
+
+# Create Redis configuration file
+cat > services/redis/config/redis.conf << 'EOF'
 # Redis configuration file
 bind 0.0.0.0
 port 6379
@@ -120,29 +69,27 @@ protected-mode yes
 dir /data
 appendonly yes
 EOF
-    
-    echo "Redis Dockerfile created successfully!"
-}
 
-# Function: Create Qdrant Dockerfile
-create_qdrant_dockerfile() {
-    echo "Creating Qdrant Dockerfile..."
-    cat << EOF > "$BASE_DIR/qdrant/Dockerfile"
-FROM qdrant/qdrant:$QDRANT_VERSION
+# Create Redis Dockerfile
+cat > services/redis/Dockerfile << 'EOF'
+FROM redis:7.0.5
 
-VOLUME /qdrant/storage
-VOLUME /qdrant/config
+VOLUME /data
 
-EXPOSE 6333
-EXPOSE 6334
+COPY config/redis.conf /usr/local/etc/redis/redis.conf
 
-COPY ./config/config.yaml /qdrant/config/config.yaml
+EXPOSE 6379
 
-CMD ["./qdrant", "--config-path", "/qdrant/config/config.yaml"]
+CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]
 EOF
 
-    # Create Qdrant config
-    cat << EOF > "$BASE_DIR/qdrant/config/config.yaml"
+# ===================
+# QDRANT CONFIGURATION
+# ===================
+mkdir -p services/qdrant/{data,config,logos}
+
+# Create Qdrant configuration file
+cat > services/qdrant/config/config.yaml << 'EOF'
 storage:
   storage_path: /qdrant/storage
 
@@ -154,28 +101,29 @@ service:
 telemetry:
   disabled: false
 EOF
-    
-    echo "Qdrant Dockerfile created successfully!"
-}
 
-# Function: Create MongoDB Dockerfile
-create_mongodb_dockerfile() {
-    echo "Creating MongoDB Dockerfile..."
-    cat << EOF > "$BASE_DIR/mongodb/Dockerfile"
-FROM mongo:$MONGODB_VERSION
+# Create Qdrant Dockerfile
+cat > services/qdrant/Dockerfile << 'EOF'
+FROM qdrant/qdrant:v1.1.1
 
-VOLUME /data/db
-VOLUME /data/configdb
+VOLUME /qdrant/storage
+VOLUME /qdrant/config
 
-EXPOSE 27017
+EXPOSE 6333
+EXPOSE 6334
 
-COPY ./config/mongod.conf /etc/mongod.conf
+COPY config/config.yaml /qdrant/config/config.yaml
 
-CMD ["mongod", "--config", "/etc/mongod.conf"]
+CMD ["./qdrant", "--config-path", "/qdrant/config/config.yaml"]
 EOF
 
-    # Create MongoDB config
-    cat << EOF > "$BASE_DIR/mongodb/config/mongod.conf"
+# ====================
+# MONGODB CONFIGURATION
+# ====================
+mkdir -p services/mongodb/{data,config,logos}
+
+# Create MongoDB configuration file
+cat > services/mongodb/config/mongod.conf << 'EOF'
 # MongoDB configuration file
 storage:
   dbPath: /data/db
@@ -194,16 +142,25 @@ net:
 security:
   authorization: enabled
 EOF
-    
-    echo "MongoDB Dockerfile created successfully!"
-}
 
-# Function: Create docker-compose.yml
-create_docker_compose() {
-    echo "Creating docker-compose.yml..."
-    cat << EOF > "$BASE_DIR/docker-compose.yml"
-version: '3.8'
+# Create MongoDB Dockerfile
+cat > services/mongodb/Dockerfile << 'EOF'
+FROM mongo:6.0
 
+VOLUME /data/db
+VOLUME /data/configdb
+
+EXPOSE 27017
+
+COPY config/mongod.conf /etc/mongod.conf
+
+CMD ["mongod", "--config", "/etc/mongod.conf"]
+EOF
+
+# ===================
+# DOCKER COMPOSE FILE
+# ===================
+cat > services/docker-compose.yml << 'EOF'
 services:
   vault:
     build: ./vault
@@ -212,8 +169,7 @@ services:
       - "8200:8200"
     volumes:
       - ./vault/data:/vault/data
-      - ./vault/config:/vault/config
-      - ./vault/logos:/vault/logos
+      - ./vault/logs:/vault/logs
     cap_add:
       - IPC_LOCK
     environment:
@@ -227,8 +183,6 @@ services:
       - "6379:6379"
     volumes:
       - ./redis/data:/data
-      - ./redis/config:/usr/local/etc/redis
-      - ./redis/logos:/redis/logos
     restart: unless-stopped
 
   qdrant:
@@ -239,8 +193,6 @@ services:
       - "6334:6334"
     volumes:
       - ./qdrant/data:/qdrant/storage
-      - ./qdrant/config:/qdrant/config
-      - ./qdrant/logos:/qdrant/logos
     restart: unless-stopped
 
   mongodb:
@@ -250,104 +202,14 @@ services:
       - "27017:27017"
     volumes:
       - ./mongodb/data:/data/db
-      - ./mongodb/config:/data/configdb
-      - ./mongodb/logos:/mongodb/logos
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
     restart: unless-stopped
 EOF
-    
-    echo "docker-compose.yml created successfully!"
-}
 
-# Function: Create README.md
-create_readme() {
-    echo "Creating README.md..."
-    cat << EOF > "$BASE_DIR/README.md"
-# Service Setup
+# Set proper permissions
+chmod -R 755 services
 
-This directory contains the setup for the following services:
-
-## Services
-
-1. **Vault** - Secret management service
-   - Port: 8200
-   - Version: $VAULT_VERSION
-   - Data directory: ./vault/data
-   - Configuration: ./vault/config
-
-2. **Redis** - In-memory data structure store
-   - Port: 6379
-   - Version: $REDIS_VERSION
-   - Data directory: ./redis/data
-   - Configuration: ./redis/config
-
-3. **Qdrant** - Vector similarity search engine
-   - Ports: 6333 (HTTP), 6334 (gRPC)
-   - Version: $QDRANT_VERSION
-   - Data directory: ./qdrant/data
-   - Configuration: ./qdrant/config
-
-4. **MongoDB** - NoSQL database
-   - Port: 27017
-   - Version: $MONGODB_VERSION
-   - Data directory: ./mongodb/data
-   - Configuration: ./mongodb/config
-
-## Usage
-
-To start all services:
-
-```bash
-cd services
-docker-compose up -d
-```
-
-To start a specific service:
-
-```bash
-cd services
-docker-compose up -d <service-name>
-```
-
-## Accessing Services
-
-- Vault UI: http://localhost:8200
-- Redis: redis-cli -h localhost -p 6379
-- Qdrant REST API: http://localhost:6333
-- MongoDB: mongodb://admin:password@localhost:27017
-EOF
-    
-    echo "README.md created successfully!"
-}
-
-# Function: Set permissions
-set_permissions() {
-    echo "Setting permissions..."
-    chmod -R 755 "$BASE_DIR"
-    chmod -R 700 "$BASE_DIR"/{vault,redis,qdrant,mongodb}/data
-    chmod -R 600 "$BASE_DIR"/{vault,redis,qdrant,mongodb}/config/*
-    
-    echo "Permissions set successfully!"
-}
-
-# Main function
-main() {
-    echo "Starting services setup..."
-    create_directory_structure
-    download_logos
-    create_vault_dockerfile
-    create_redis_dockerfile
-    create_qdrant_dockerfile
-    create_mongodb_dockerfile
-    create_docker_compose
-    create_readme
-    set_permissions
-    
-    echo "Services setup completed successfully!"
-    echo "You can now navigate to $BASE_DIR and run 'docker-compose up -d' to start all services."
-}
-
-# Run main function
-main
+echo "Setup complete!"
+echo "To start services, run: cd services && docker compose up -d --build"

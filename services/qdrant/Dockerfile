@@ -6,6 +6,6 @@ VOLUME /qdrant/config
 EXPOSE 6333
 EXPOSE 6334
 
-COPY ./config/config.yaml /qdrant/config/config.yaml
+COPY config/config.yaml /qdrant/config/config.yaml
 
 CMD ["./qdrant", "--config-path", "/qdrant/config/config.yaml"]

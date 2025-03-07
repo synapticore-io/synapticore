@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   vault:
     build: ./vault
@@ -8,8 +6,7 @@ services:
       - "8200:8200"
     volumes:
       - ./vault/data:/vault/data
-      - ./vault/config:/vault/config
-      - ./vault/logos:/vault/logos
+      - ./vault/logs:/vault/logs
     cap_add:
       - IPC_LOCK
     environment:
@@ -23,8 +20,6 @@ services:
       - "6379:6379"
     volumes:
       - ./redis/data:/data
-      - ./redis/config:/usr/local/etc/redis
-      - ./redis/logos:/redis/logos
     restart: unless-stopped
 
   qdrant:
@@ -35,8 +30,6 @@ services:
       - "6334:6334"
     volumes:
       - ./qdrant/data:/qdrant/storage
-      - ./qdrant/config:/qdrant/config
-      - ./qdrant/logos:/qdrant/logos
     restart: unless-stopped
 
   mongodb:
@@ -46,8 +39,6 @@ services:
       - "27017:27017"
     volumes:
       - ./mongodb/data:/data/db
-      - ./mongodb/config:/data/configdb
-      - ./mongodb/logos:/mongodb/logos
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password

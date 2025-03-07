@@ -2,7 +2,7 @@ FROM redis:7.0.5
 
 VOLUME /data
 
-COPY ./config/redis.conf /usr/local/etc/redis/redis.conf
+COPY config/redis.conf /usr/local/etc/redis/redis.conf
 
 EXPOSE 6379
 

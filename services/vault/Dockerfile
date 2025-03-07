@@ -14,6 +14,6 @@ VOLUME /vault/logs
 
 EXPOSE 8200
 
-COPY ./config/config.hcl /vault/config/config.hcl
+COPY config/config.hcl /vault/config/config.hcl
 
 ENTRYPOINT ["vault", "server", "-config=/vault/config/config.hcl"]
