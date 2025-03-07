@@ -82,6 +82,9 @@ cd synapticore
 UV provides faster dependency resolution and installation compared to pip:
 
 ```bash
+# Setup with UV (Recommended)
+# UV provides faster dependency resolution and installation compared to pip:
+
 # Install UV if you don't have it yet
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.24/uv-installer.sh | sh
 
@@ -89,8 +92,8 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/d
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install the package with all dependencies using UV
-uv pip install -e ".[all,dev]"
+# Synchronize the project dependencies with UV
+uv sync
 ```
 
 ### Alternative Setup with Pip
