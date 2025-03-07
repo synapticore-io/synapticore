@@ -1,20 +1,41 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="hierarchical-agent-system",
+    name="synapticore",
     version="0.1.0",
-    packages=find_packages(),
+    package_dir={"": "src"},
+    packages=find_packages(where="src"),
     install_requires=[
-        "langchain>=0.2.0",
+        "langchain>=0.1.0",
         "langchain-core>=0.1.0",
-        "langchain-openai>=0.0.4",
-        "langchain-community>=0.0.16",
-        "langgraph>=0.0.20",
-        "openai>=1.9.0",
-        "hvac>=1.2.1",
-        "pydantic>=2.5.0",
-        "fastapi>=0.104.1",
-        "uvicorn>=0.24.0",
-        "python-dotenv>=1.0.0",
     ],
+    extras_require={
+        "dev": [
+            "pytest>=7.0.0",
+            "black>=23.0.0",
+            "isort>=5.0.0",
+            "mypy>=1.0.0",
+        ],
+        "openai": [
+            "openai>=1.0.0",
+        ],
+        "anthropic": [
+            "anthropic>=0.5.0",
+        ],
+        "mcp": [
+            "aiohttp>=3.8.0",
+            "sseclient-py>=1.7.0",
+        ],
+        "all": [
+            "openai>=1.0.0",
+            "anthropic>=0.5.0",
+            "aiohttp>=3.8.0",
+            "sseclient-py>=1.7.0",
+        ],
+    },
+    python_requires=">=3.8",
+    description="A hierarchical agent manager for orchestrating LLM-based agents",
+    author="Your Name",
+    author_email="your.email@example.com",
+    url="https://github.com/yourusername/synapticore",
 )

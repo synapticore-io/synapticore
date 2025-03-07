@@ -3,49 +3,65 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hierarchical-agent-system"
+name = "synapticore"
 version = "0.1.0"
-description = "A hierarchical agent system framework"
+description = "A hierarchical agent manager for orchestrating LLM-based agents"
 authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
 dependencies = [
-    "langchain>=0.2.0",
+    "langchain>=0.1.0",
     "langchain-core>=0.1.0",
     "langchain-openai>=0.0.4",
+    "langchain-anthropic>=0.0.6",
     "langchain-community>=0.0.16",
     "langgraph>=0.0.20",
-    "openai>=1.9.0",
-    "hvac>=1.2.1",
     "pydantic>=2.5.0",
-    "fastapi>=0.104.1",
-    "uvicorn>=0.24.0",
     "python-dotenv>=1.0.0",
-    "pytest>=8.3.4", # Für Tests
-    "mkdocs>=1.6.0", # Für Dokumentation
-    "mcp[cli]>=1.3.0",
-    "openapi>=2.0.0",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.8"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",  # Bereits in dependencies, hier für Konsistenz
-    "pytest-cov",  # Für Code-Abdeckung
-    "mypy",  # Für Statische Typprüfung
-    "black",  # Für Code-Formatierung
-    "isort",  # Für Import-Sortierung
-    "mkdocs-material>=9.5.21",  # Modernes Theme für MkDocs
-    "mkdocstrings[python]>=0.25.2",  # Für Python-Docstrings in MkDocs
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+    "mkdocs-material>=9.5.21",
+    "mkdocstrings[python]>=0.25.2",
+]
+openai = [
+    "openai>=1.0.0",
+]
+anthropic = [
+    "anthropic>=0.5.0",
+]
+mcp = [
+    "aiohttp>=3.8.0",
+    "sseclient-py>=1.7.0",
+]
+all = [
+    "openai>=1.0.0",
+    "anthropic>=0.5.0",
+    "aiohttp>=3.8.0",
+    "sseclient-py>=1.7.0",
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+    "mkdocs-material>=9.5.21",
+    "mkdocstrings[python]>=0.25.2",
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 exclude = ["tests*"]
 
 [tool.black]
 line-length = 100
-target-version = ['py310']
+target-version = ['py38', 'py39', 'py310', 'py311']
 
 [tool.isort]
 profile = "black"
@@ -53,7 +69,7 @@ line_length = 100
 
 [tool.setuptools]
 include-package-data = true
-package-dir = {"hierarchical_agent_system" = "hierarchical_agent_system"}
+package-dir = {"" = "src"}
 
 [tool.pytest.ini_options]
 addopts = "--cov=./ --cov-report=html --cov-report=term-missing"
@@ -61,8 +77,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 
 [tool.mkdocs]
-site_name = "Hierarchical Agent System Documentation"
-site_description = "Documentation for the Hierarchical Agent System framework"
+site_name = "Synapticore Documentation"
+site_description = "Documentation for the Synapticore framework"
 nav = [
     "Home: index.md",
     "API Reference: api.md",
