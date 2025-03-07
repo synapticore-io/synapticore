@@ -18,7 +18,11 @@
                 "ms-azuretools.vscode-docker",
                 "github.copilot",
                 "github.vscode-github-actions",
-                "ms-vscode.makefile-tools"
+                "ms-vscode.makefile-tools",
+                "davidanson.vscode-markdownlint",
+                "esbenp.prettier-vscode",
+                "GitHub.vscode-pull-request-github",
+                "mhutchie.git-graph"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/workspaces/.venv/bin/python",
@@ -52,15 +56,18 @@
             }
         }
     },
-    "postCreateCommand": "/bin/bash -c 'export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH\" && if [ -f \"/workspaces/.venv/bin/pip\" ]; then /workspaces/.venv/bin/pip install mcp pydantic; else curl -sS https://bootstrap.pypa.io/get-pip.py | /workspaces/.venv/bin/python && /workspaces/.venv/bin/pip install mcp pydantic; fi'",
-    "postStartCommand": "/bin/bash -c 'echo \"Virtuelle Umgebung aktiviert: $VIRTUAL_ENV\"'",
+    "postCreateCommand": "sudo mkdir -p /workspaces/.venv && sudo chown -R synapticore-dev:synapticore /workspaces/.venv",
+    "postStartCommand": "echo 'Development container started successfully!'",
     "remoteUser": "synapticore-dev",
     "updateRemoteUserUID": true,
     "features": {
         "ghcr.io/devcontainers/features/git:1": {
             "version": "latest"
         },
-        "ghcr.io/devcontainers/features/github-cli:1": {}
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/git-lfs:1": {
+            "version": "latest"
+        }
     },
     "mounts": [
         "source=${localWorkspaceFolder}/.cache,target=/workspaces/.cache,type=bind,consistency=cached",
@@ -73,8 +80,9 @@
         "UV_CACHE_DIR": "/workspaces/.cache/uv",
         "UV_LINK_MODE": "copy",
         "VIRTUAL_ENV": "/workspaces/.venv",
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/.venv/bin:/home/synapticore-dev/.local/bin:${PATH}",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/.venv/bin:/home/synapticore-dev/.local/bin:/home/synapticore-dev/.bun/bin:${PATH}",
         "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONUNBUFFERED": "1"
+        "PYTHONUNBUFFERED": "1",
+        "BUN_INSTALL": "/home/synapticore-dev/.bun"
     }
 }

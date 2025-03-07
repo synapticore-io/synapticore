@@ -26,7 +26,7 @@ dependencies = [
     "mcp[cli]>=1.3.0",
     "openapi>=2.0.0",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [project.optional-dependencies]
 dev = [

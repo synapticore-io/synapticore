@@ -157,7 +157,7 @@ Explore complete examples in the `examples/` directory:
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - LangGraph 0.3.5+
 - LangChain Core 0.2.0+
 

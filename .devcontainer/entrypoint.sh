@@ -1,135 +1,156 @@
 #!/bin/bash
 set -e
 
-echo "Initialisiere Python-Entwicklungsumgebung..."
+echo "Initializing Python development environment..."
 
-# Stelle sicher, dass der PATH korrekt ist
+# Ensure path is correct
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
-# Verzeichnisse erstellen, falls sie nicht existieren
+# Ensure directories exist with proper permissions
 mkdir -p /workspaces/.venv
 mkdir -p /workspaces/.cache/uv
 mkdir -p /workspaces/logs
 mkdir -p /workspaces/data
 
-# Überprüfe, ob die Docker-Gruppe existiert und füge den Benutzer hinzu
+# Check if the Docker group exists and add the user
 DOCKER_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo "")
 if [ -n "$DOCKER_GID" ]; then
     if ! getent group $DOCKER_GID > /dev/null 2>&1; then
         sudo groupadd -g $DOCKER_GID docker_host
     fi
     sudo usermod -aG $DOCKER_GID $(whoami)
-    echo "Benutzer $(whoami) zur Docker-Gruppe hinzugefügt (GID: $DOCKER_GID)"
+    echo "User $(whoami) added to Docker group (GID: $DOCKER_GID)"
 fi
 
-# UV-Version prüfen
+# Check UV version
 if ! command -v uv &> /dev/null; then
-    echo "Installiere UV..."
+    echo "Installing UV..."
     curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.24/uv-installer.sh | sh
     if [ $? -ne 0 ]; then
-        echo "Fehler bei der Installation von UV. Bitte manuell installieren."
+        echo "Error installing UV. Please install manually."
     fi
 fi
 
 echo "UV Version: $(uv --version)"
 
-# Python venv erstellen und aktivieren
-if [ ! -d "$VIRTUAL_ENV" ]; then
-    echo "Erstelle virtuelle Umgebung..."
-    python -m venv $VIRTUAL_ENV --without-pip
-    if [ $? -ne 0 ]; then
-        echo "Fehler beim Erstellen der virtuellen Umgebung."
-        exit 1
-    fi
+# Set VIRTUAL_ENV explicitly
+export VIRTUAL_ENV="/workspaces/.venv"
 
-    # Pip manuell installieren
-    curl -sS https://bootstrap.pypa.io/get-pip.py | $VIRTUAL_ENV/bin/python
-
-    # Upgrade pip in der virtuellen Umgebung
-    $VIRTUAL_ENV/bin/pip install --upgrade pip
-    if [ $? -ne 0 ]; then
-        echo "Warnung: Konnte pip nicht aktualisieren."
-    fi
-fi
-
-# Prüfe, ob Python in der virtuellen Umgebung existiert
-if [ ! -f "$VIRTUAL_ENV/bin/python" ]; then
-    echo "Fehler: Python-Interpreter nicht in der virtuellen Umgebung gefunden."
-    echo "Versuche, die virtuelle Umgebung neu zu erstellen..."
+# Create and activate Python venv if it doesn't exist
+if [ ! -d "$VIRTUAL_ENV" ] || [ ! -f "$VIRTUAL_ENV/bin/python" ]; then
+    echo "Creating new virtual environment..."
     rm -rf $VIRTUAL_ENV
-    python -m venv $VIRTUAL_ENV --without-pip
+    python -m venv $VIRTUAL_ENV
+    
     if [ $? -ne 0 ]; then
-        echo "Fehler beim Neuerstellen der virtuellen Umgebung."
-        exit 1
+        echo "Error creating virtual environment. Trying alternative method..."
+        python -m venv $VIRTUAL_ENV --without-pip
+        
+        if [ $? -ne 0 ]; then
+            echo "Error creating virtual environment using both methods."
+            exit 1
+        fi
+        
+        # Install pip manually
+        curl -sS https://bootstrap.pypa.io/get-pip.py | $VIRTUAL_ENV/bin/python
     fi
-    curl -sS https://bootstrap.pypa.io/get-pip.py | $VIRTUAL_ENV/bin/python
+    
+    # Upgrade pip in the virtual environment
     $VIRTUAL_ENV/bin/pip install --upgrade pip
+    if [ $? -ne 0 ]; then
+        echo "Warning: Could not upgrade pip."
+    fi
 fi
 
-# Aktiviere die virtuelle Umgebung
+# Activate the virtual environment
 export PATH="$VIRTUAL_ENV/bin:$PATH"
-echo "Virtuelle Umgebung aktiviert: $VIRTUAL_ENV"
+echo "Virtual environment activated: $VIRTUAL_ENV"
 
-# Basis-Pakete installieren
-echo "Installiere Basis-Pakete..."
-$VIRTUAL_ENV/bin/pip install black pylint
+# Install base packages
+echo "Installing base packages..."
+$VIRTUAL_ENV/bin/pip install -U pip black pylint mcp pydantic
 if [ $? -ne 0 ]; then
-    echo "Warnung: Konnte Basis-Pakete nicht installieren."
+    echo "Warning: Could not install base packages."
 fi
 
-# Projekt mit pyproject.toml installieren falls vorhanden
-if [ -f "/workspaces/pyproject.toml" ]; then
-    echo "Installiere Projekt mit pyproject.toml..."
+# Check if git-lfs is properly installed
+if ! command -v git-lfs &> /dev/null; then
+    echo "Git LFS not found, installing..."
+    sudo apt-get update && sudo apt-get install -y git-lfs && git lfs install
+else
+    echo "Git LFS is installed: $(git-lfs --version)"
+    git lfs install
+fi
+
+# Check if bun is properly installed
+if ! command -v bun &> /dev/null; then
+    echo "Bun not found, installing..."
+    curl -fsSL https://bun.sh/install | bash
+    export BUN_INSTALL="$HOME/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+else
+    echo "Bun is installed: $(bun --version)"
+fi
+
+# Install project with pyproject.toml if available
+if [ -f "/workspaces/omniverse/pyproject.toml" ]; then
+    echo "Installing project with pyproject.toml..."
     cd /workspaces/omniverse
 
-    # Versuche das Projekt zu installieren
+    # Try to install the project
     $VIRTUAL_ENV/bin/pip install -e .
     if [ $? -ne 0 ]; then
-        echo "Warnung: Konnte das Projekt nicht installieren. Versuche es später manuell mit 'pip install -e .'."
+        echo "Warning: Could not install the project. Try again manually with 'pip install -e .' later."
     else
-        echo "Projekt erfolgreich installiert."
+        echo "Project successfully installed."
     fi
 fi
 
-# Berechtigungen für Synapticore-Benutzer einrichten
+# Set up permissions for Synapticore user
 if id "synapticore-dev" &>/dev/null; then
-    echo "Richte Berechtigungen ein..."
-    mkdir -p /workspaces/{data,logs}
-
-    # Nur wenn wir root-Rechte haben
-    if [ $(id -u) -eq 0 ]; then
-        chown -R synapticore-dev:synapticore /workspaces/{data,logs}
-        chmod -R 775 /workspaces/{data,logs}
-    fi
+    echo "Setting up permissions..."
+    for dir in /workspaces/.venv /workspaces/.cache /workspaces/data /workspaces/logs; do
+        if [ -d "$dir" ]; then
+            sudo chown -R $(whoami):$(id -gn) "$dir" 2>/dev/null || true
+            chmod -R 775 "$dir" 2>/dev/null || true
+        fi
+    done
 fi
 
-# Stelle sicher, dass der PATH in ZSH korrekt ist
+# Ensure path is correct in ZSH
 if [ -f "$HOME/.zshrc" ]; then
-    if ! grep -q "export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH\"" $HOME/.zshrc; then
-        echo "export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\$PATH\"" >> $HOME/.zshrc
-    fi
+    # Define a function to safely add lines to zshrc if they don't exist
+    add_to_zshrc() {
+        if ! grep -q "$1" "$HOME/.zshrc"; then
+            echo "$1" >> "$HOME/.zshrc"
+        fi
+    }
 
-    if ! grep -q "export PATH=\"$VIRTUAL_ENV/bin:\$PATH\"" $HOME/.zshrc; then
-        echo "export PATH=\"$VIRTUAL_ENV/bin:\$PATH\"" >> $HOME/.zshrc
-    fi
+    add_to_zshrc 'export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"'
+    add_to_zshrc "export VIRTUAL_ENV=\"$VIRTUAL_ENV\""
+    add_to_zshrc 'export PATH="$VIRTUAL_ENV/bin:$PATH"'
+    add_to_zshrc 'export BUN_INSTALL="$HOME/.bun"'
+    add_to_zshrc 'export PATH="$BUN_INSTALL/bin:$PATH"'
+    
+    # Add useful aliases
+    if ! grep -q "# Useful aliases" "$HOME/.zshrc"; then
+        cat >> "$HOME/.zshrc" << EOF
 
-    # Füge nützliche Aliase hinzu
-    if ! grep -q "# Nützliche Aliase" $HOME/.zshrc; then
-        cat >> $HOME/.zshrc << EOF
-
-# Nützliche Aliase
+# Useful aliases
 alias ll='ls -la'
 alias py='python'
 alias uvpip='uv pip'
-alias pip='$VIRTUAL_ENV/bin/pip'
 alias python='$VIRTUAL_ENV/bin/python'
+alias pip='$VIRTUAL_ENV/bin/pip'
 
 EOF
     fi
 fi
 
-echo "Python-Entwicklungsumgebung ist bereit."
+echo "Python development environment is ready."
 echo "UV Cache: $UV_CACHE_DIR"
 echo "Virtual ENV: $VIRTUAL_ENV"
+echo "Git LFS: $(git-lfs --version 2>/dev/null || echo 'Not installed')"
+echo "Bun: $(bun --version 2>/dev/null || echo 'Not installed')"
 
 exec "$@"
