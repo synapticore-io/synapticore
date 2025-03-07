@@ -65,22 +65,55 @@ The `AgentManager` ties everything together, managing the creation, connection, 
 
 ### Setting Up Development Environment
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-org/synapticore.git
-   cd synapticore
-   ```
+### Prerequisites
 
-2. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+- Python 3.8 or higher
+- [UV](https://github.com/astral-sh/uv) - Fast Python package installer and resolver
 
-3. Install the package in development mode with all dependencies:
-   ```bash
-   pip install -e ".[all,dev]"
-   ```
+### Clone the Repository
+
+```bash
+git clone https://github.com/bjoernbethge/synapticore.git
+cd synapticore
+```
+
+### Setup with UV (Recommended)
+
+UV provides faster dependency resolution and installation compared to pip:
+
+```bash
+# Install UV if you don't have it yet
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.24/uv-installer.sh | sh
+
+# Create a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install the package with all dependencies using UV
+uv pip install -e ".[all,dev]"
+```
+
+### Alternative Setup with Pip
+
+If you prefer using pip:
+
+```bash
+# Create a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install the package with all dependencies
+pip install -e ".[all,dev]"
+```
+
+### DevContainer Setup (Recommended for VSCode Users)
+
+This repository includes a DevContainer configuration for VSCode, which provides a fully configured development environment:
+
+1. Install [VSCode](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Clone the repository and open it in VSCode
+3. When prompted, click "Reopen in Container" or use the command palette (F1) and select "Dev Containers: Reopen in Container"
+4. The container will automatically set up the development environment with all dependencies
 
 ### Development Cycle
 
