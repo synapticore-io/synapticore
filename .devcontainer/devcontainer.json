@@ -72,9 +72,11 @@
     "mounts": [
         "source=${localWorkspaceFolder}/.cache,target=/workspaces/.cache,type=bind,consistency=cached",
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/synapticore-dev/.ssh,type=bind,consistency=cached"
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/synapticore-dev/.ssh,type=bind,consistency=cached",
+        "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
     ],
     "remoteEnv": {
+        "SSH_AUTH_SOCK": "/ssh-agent",
         "NVIDIA_VISIBLE_DEVICES": "all",
         "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
         "UV_CACHE_DIR": "/workspaces/.cache/uv",
