@@ -14,20 +14,12 @@
                 "ms-python.vscode-pylance",
                 "ms-python.black-formatter",
                 "charliermarsh.ruff",
-                "njpwerner.autodocstring",
                 "dbaeumer.vscode-eslint",
                 "esbenp.prettier-vscode",
-                "Vue.volar",
-                "svelte.svelte-vscode",
                 "bradlc.vscode-tailwindcss",
-                "astro-build.astro-vscode",
                 "ms-azuretools.vscode-docker",
-                "github.vscode-github-actions",
                 "github.copilot",
-                "ms-vscode.makefile-tools",
-                "davidanson.vscode-markdownlint",
-                "GitHub.vscode-pull-request-github",
-                "mhutchie.git-graph"
+                "ms-vscode.makefile-tools"
             ],
             "settings": {
                 "python.defaultInterpreterPath": "/workspaces/synapticore/.venv/bin/python",
@@ -38,54 +30,27 @@
                 "python.linting.pylintPath": "/workspaces/synapticore/.venv/bin/pylint",
                 "javascript.updateImportsOnFileMove.enabled": "always",
                 "typescript.updateImportsOnFileMove.enabled": "always",
-                "javascript.format.enable": true,
-                "typescript.format.enable": true,
-                "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "vue", "svelte"],
                 "editor.formatOnSave": true,
-                "editor.rulers": [
-                    88,
-                    120
-                ],
                 "editor.codeActionsOnSave": {
                     "source.organizeImports": true,
                     "source.fixAll.eslint": true
                 },
-                "files.trimTrailingWhitespace": true,
-                "terminal.integrated.defaultProfile.linux": "zsh",
-                "terminal.integrated.profiles.linux": {
-                    "zsh": {
-                        "path": "/bin/zsh",
-                        "args": []
-                    },
-                    "bash": {
-                        "path": "/bin/bash",
-                        "args": [
-                            "-l"
-                        ]
-                    }
-                }
+                "terminal.integrated.defaultProfile.linux": "zsh"
             }
         }
     },
-    "postCreateCommand": "chmod +x ./.devcontainer/setup.sh && chmod +x ./.devcontainer/entrypoint.sh && ./.devcontainer/setup.sh",
-    "postStartCommand": "sudo chmod 666 /var/run/docker.sock 2>/dev/null || true; echo 'Development container started successfully!'",
-    "remoteUser": "synapticore-dev",
+    "onCreateCommand": "mkdir -p ${localWorkspaceFolder}/.cache ${localWorkspaceFolder}/logs ${localWorkspaceFolder}/data",
+    "postCreateCommand": "bash -c '/opt/devcontainer/scripts/setup.sh || echo \"Setup script failed but continuing...\"'",
+    "postStartCommand": "sudo chmod 666 /var/run/docker.sock 2>/dev/null || true && sudo git config --system --add safe.directory \"/workspaces/synapticore\" && sudo chown -R $(whoami):$(id -gn) /workspaces/synapticore 2>/dev/null || true",
+    "remoteUser": "vscode",
     "updateRemoteUserUID": true,
-    "features": {
-        "ghcr.io/devcontainers/features/git:1": {
-            "version": "latest"
-        },
-        "ghcr.io/devcontainers/features/github-cli:1": {},
-        "ghcr.io/devcontainers/features/git-lfs:1": {
-            "version": "latest"
-        }
-    },
+    "features": {},
     "mounts": [
-        "source=${localWorkspaceFolder}/.cache,target=/workspaces/synapticore/.cache,type=bind,consistency=cached",
+        "type=volume,target=/workspaces/synapticore/.cache",
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached",
         {
             "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.ssh",
-            "target": "/home/synapticore-dev/.ssh",
+            "target": "/home/vscode/.ssh",
             "type": "bind",
             "consistency": "cached",
             "readonly": true
@@ -97,10 +62,10 @@
         "UV_CACHE_DIR": "/workspaces/synapticore/.cache/uv",
         "UV_LINK_MODE": "copy",
         "VIRTUAL_ENV": "/workspaces/synapticore/.venv",
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/synapticore/.venv/bin:/home/synapticore-dev/.local/bin:/home/synapticore-dev/.bun/bin:/home/synapticore-dev/.npm-global/bin:${PATH}",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/synapticore/.venv/bin:/home/vscode/.local/bin:/home/vscode/.bun/bin:/home/vscode/.npm-global/bin:${PATH}",
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
-        "BUN_INSTALL": "/home/synapticore-dev/.bun",
+        "BUN_INSTALL": "/home/vscode/.bun",
         "PROJECT_ROOT": "/workspaces/synapticore",
         "NODE_ENV": "development"
     }
