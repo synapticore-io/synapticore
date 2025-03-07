@@ -1,6 +1,6 @@
-# Developer Guide - Hierarchical Agent Manager
+# Developer Guide - Synapticore
 
-This guide provides detailed information for developers who want to understand, modify, or extend the Hierarchical Agent Manager framework.
+This guide provides detailed information for developers who want to understand, modify, or extend the Synapticore framework.
 
 ## Table of Contents
 
@@ -16,16 +16,17 @@ This guide provides detailed information for developers who want to understand, 
 
 ## Architecture Overview
 
-The Hierarchical Agent Manager follows a modular architecture designed to facilitate complex multi-agent systems with different language models and external tool integration. Here's a high-level overview:
+The Synapticore framework follows a modular architecture designed to facilitate complex multi-agent systems with different language models and external tool integration. Here's a high-level overview:
 
 ```
-synapticore/
-├── llms/             # LLM Registry and model management
-├── mcp/              # MCP integration for external tools
-├── agents/           # Agent and supervisor management
-├── utils/            # Utility functions (visualization, etc.)
-├── examples/         # Usage examples
-└── tests/            # Test suite
+src/
+└── synapticore/
+    ├── llms/             # LLM Registry and model management
+    ├── mcp/              # MCP integration for external tools
+    ├── agents/           # Agent and supervisor management
+    ├── utils/            # Utility functions (visualization, etc.)
+    ├── examples/         # Usage examples
+    └── tests/            # Test suite
 ```
 
 The system uses a hierarchical approach where:
@@ -73,7 +74,7 @@ The `AgentManager` ties everything together, managing the creation, connection, 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/bjoernbethge/synapticore.git
+git clone https://github.com/yourusername/synapticore.git
 cd synapticore
 ```
 
@@ -82,9 +83,6 @@ cd synapticore
 UV provides faster dependency resolution and installation compared to pip:
 
 ```bash
-# Setup with UV (Recommended)
-# UV provides faster dependency resolution and installation compared to pip:
-
 # Install UV if you don't have it yet
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.24/uv-installer.sh | sh
 
@@ -93,7 +91,7 @@ python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Synchronize the project dependencies with UV
-uv sync
+uv pip sync -e ".[dev,all]"
 ```
 
 ### Alternative Setup with Pip
@@ -123,7 +121,7 @@ This repository includes a DevContainer configuration for VSCode, which provides
 1. **Make Changes**: Modify the code in your editor of choice
 2. **Run Tests**: Execute `pytest` to ensure your changes don't break existing functionality
 3. **Run Examples**: Test your changes with the provided examples
-4. **Format Code**: Run `black .` and `ruff .` to ensure code style consistency
+4. **Format Code**: Run `black .` and `isort .` to ensure code style consistency
 5. **Commit Changes**: Use descriptive commit messages explaining what you changed and why
 
 ## Adding New Features
@@ -258,9 +256,14 @@ python -m synapticore.examples.complex_hierarchy
    ]
    ```
 
+3. Update the environment with UV:
+   ```bash
+   uv pip sync -e ".[all,dev]"
+   ```
+
 ### Modifying the Agent Hierarchy Visualization
 
-The visualization logic is in `utils/visualization.py`. To modify:
+The visualization logic is in `utils/hierarchy.py`. To modify:
 
 1. Update the `generate_mermaid_diagram` function for Mermaid diagram generation
 2. Update the `print_hierarchy_tree` function for console output
@@ -270,7 +273,7 @@ The visualization logic is in `utils/visualization.py`. To modify:
 ### Code Style
 
 - Follow the [Black](https://black.readthedocs.io/en/stable/) code formatting style
-- Use [ruff](https://github.com/charliermarsh/ruff) for linting
+- Use [isort](https://pycqa.github.io/isort/) for import sorting
 - Add docstrings to all public functions and classes
 - Use type hints consistently
 
@@ -308,7 +311,7 @@ The visualization logic is in `utils/visualization.py`. To modify:
 
 **Symptom**: `ImportError: langchain-openai is not installed.`
 
-**Solution**: Install the optional dependency: `pip install "synapticore[openai]"` or `pip install langchain-openai`.
+**Solution**: Install the optional dependency: `uv pip install "synapticore[openai]"` or `uv pip install langchain-openai`.
 
 ### Debugging Tips
 

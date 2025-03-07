@@ -1,4 +1,4 @@
-# Hierarchical Agent Manager
+# Synapticore
 
 A flexible framework for building, managing, and orchestrating complex hierarchical multi-agent systems with support for multiple language models and MCP tool integration.
 
@@ -12,18 +12,41 @@ A flexible framework for building, managing, and orchestrating complex hierarchi
 
 ## Installation
 
+### Using UV (Recommended)
+
+[UV](https://github.com/astral-sh/uv) is a fast Python package installer and resolver, providing a significant speed improvement over pip:
+
 ```bash
+# Install UV if you don't have it yet
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.24/uv-installer.sh | sh
+
 # Basic installation
-pip install hierarchical-agent-manager
+uv pip install synapticore
 
 # With specific LLM integrations
-pip install "hierarchical-agent-manager[openai,anthropic]"
+uv pip install "synapticore[openai,anthropic]"
 
 # With MCP support
-pip install "hierarchical-agent-manager[mcp]"
+uv pip install "synapticore[mcp]"
 
 # Complete installation
-pip install "hierarchical-agent-manager[all]"
+uv pip install "synapticore[all]"
+```
+
+### Using Pip
+
+```bash
+# Basic installation
+pip install synapticore
+
+# With specific LLM integrations
+pip install "synapticore[openai,anthropic]"
+
+# With MCP support
+pip install "synapticore[mcp]"
+
+# Complete installation
+pip install "synapticore[all]"
 ```
 
 ## Quick Start
@@ -157,9 +180,9 @@ Explore complete examples in the `examples/` directory:
 
 ## Requirements
 
-- Python 3.11+
-- LangGraph 0.3.5+
-- LangChain Core 0.2.0+
+- Python 3.8+
+- LangGraph 0.0.20+
+- LangChain Core 0.1.0+
 
 ## License
 
