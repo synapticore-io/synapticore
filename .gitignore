@@ -1,0 +1,3 @@
+services/qdrant/Dockerfile.bak
+services/docker-compose.yml.bak
+patch-qdrant.sh
