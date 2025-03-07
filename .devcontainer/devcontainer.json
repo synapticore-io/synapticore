@@ -1,5 +1,5 @@
 {
-    "name": "${localWorkspaceFolderBasename} Dev Container",
+    "name": "Synapticore Dev Container",
     "build": {
         "dockerfile": "Dockerfile",
         "context": "."
@@ -30,12 +30,12 @@
                 "mhutchie.git-graph"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python",
+                "python.defaultInterpreterPath": "/workspaces/synapticore/.venv/bin/python",
                 "python.terminal.activateEnvironment": true,
                 "python.formatting.provider": "black",
                 "python.linting.enabled": true,
                 "python.linting.pylintEnabled": true,
-                "python.linting.pylintPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/pylint",
+                "python.linting.pylintPath": "/workspaces/synapticore/.venv/bin/pylint",
                 "javascript.updateImportsOnFileMove.enabled": "always",
                 "typescript.updateImportsOnFileMove.enabled": "always",
                 "javascript.format.enable": true,
@@ -69,7 +69,7 @@
     },
     "postCreateCommand": "chmod +x ./.devcontainer/setup.sh && chmod +x ./.devcontainer/entrypoint.sh && ./.devcontainer/setup.sh",
     "postStartCommand": "sudo chmod 666 /var/run/docker.sock 2>/dev/null || true; echo 'Development container started successfully!'",
-    "remoteUser": "vscode",
+    "remoteUser": "synapticore-dev",
     "updateRemoteUserUID": true,
     "features": {
         "ghcr.io/devcontainers/features/git:1": {
@@ -81,11 +81,11 @@
         }
     },
     "mounts": [
-        "source=${localWorkspaceFolder}/.cache,target=/workspaces/${localWorkspaceFolderBasename}/.cache,type=bind,consistency=cached",
+        "source=${localWorkspaceFolder}/.cache,target=/workspaces/synapticore/.cache,type=bind,consistency=cached",
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached",
         {
             "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.ssh",
-            "target": "/home/vscode/.ssh",
+            "target": "/home/synapticore-dev/.ssh",
             "type": "bind",
             "consistency": "cached",
             "readonly": true
@@ -94,14 +94,14 @@
     "remoteEnv": {
         "NVIDIA_VISIBLE_DEVICES": "all",
         "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
-        "UV_CACHE_DIR": "/workspaces/${localWorkspaceFolderBasename}/.cache/uv",
+        "UV_CACHE_DIR": "/workspaces/synapticore/.cache/uv",
         "UV_LINK_MODE": "copy",
-        "VIRTUAL_ENV": "/workspaces/${localWorkspaceFolderBasename}/.venv",
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/${localWorkspaceFolderBasename}/.venv/bin:/home/vscode/.local/bin:/home/vscode/.bun/bin:/home/vscode/.npm-global/bin:${PATH}",
+        "VIRTUAL_ENV": "/workspaces/synapticore/.venv",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/synapticore/.venv/bin:/home/synapticore-dev/.local/bin:/home/synapticore-dev/.bun/bin:/home/synapticore-dev/.npm-global/bin:${PATH}",
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
-        "BUN_INSTALL": "/home/vscode/.bun",
-        "PROJECT_ROOT": "/workspaces/${localWorkspaceFolderBasename}",
+        "BUN_INSTALL": "/home/synapticore-dev/.bun",
+        "PROJECT_ROOT": "/workspaces/synapticore",
         "NODE_ENV": "development"
     }
 }

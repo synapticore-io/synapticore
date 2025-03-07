@@ -3,7 +3,7 @@ set -e
 
 # Get project name from workspace folder if not set
 if [ -z "$PROJECT_NAME" ]; then
-    PROJECT_NAME=$(basename "$PWD")
+    PROJECT_NAME="synapticore"
 fi
 
 echo "Initializing development environment for $PROJECT_NAME..."
@@ -112,7 +112,6 @@ else
     echo "⚠️ Docker socket not found at /var/run/docker.sock"
 fi
 
-# Rest of the script remains the same...
 # Setup Python environment if needed
 if [ "$HAS_PYTHON" = true ]; then
     echo "Setting up Python environment..."
