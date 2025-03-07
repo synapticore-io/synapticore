@@ -29,8 +29,8 @@ pip install "hierarchical-agent-manager[all]"
 ## Quick Start
 
 ```python
-from hierarchical_agent_manager import AgentManager
-from hierarchical_agent_manager.llms import LLMRegistry
+from synapticore import AgentManager
+from synapticore.llms import LLMRegistry
 from langchain_core.tools import tool
 
 # Define some tools

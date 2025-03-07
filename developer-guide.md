@@ -19,7 +19,7 @@ This guide provides detailed information for developers who want to understand, 
 The Hierarchical Agent Manager follows a modular architecture designed to facilitate complex multi-agent systems with different language models and external tool integration. Here's a high-level overview:
 
 ```
-hierarchical_agent_manager/
+synapticore/
 ├── llms/             # LLM Registry and model management
 ├── mcp/              # MCP integration for external tools
 ├── agents/           # Agent and supervisor management
@@ -67,8 +67,8 @@ The `AgentManager` ties everything together, managing the creation, connection, 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-org/hierarchical_agent_manager.git
-   cd hierarchical_agent_manager
+   git clone https://github.com/your-org/synapticore.git
+   cd synapticore
    ```
 
 2. Create a virtual environment:
@@ -97,9 +97,9 @@ The `AgentManager` ties everything together, managing the creation, connection, 
 1. Add a new method to `LLMRegistry` following this pattern:
    ```python
    def register_new_provider(
-       self, 
-       model_id: str, 
-       model: str = "default-model-name", 
+       self,
+       model_id: str,
+       model: str = "default-model-name",
        **kwargs
    ) -> None:
        try:
@@ -158,7 +158,7 @@ The `AgentManager` ties everything together, managing the creation, connection, 
        command="python",
        args=["path/to/my_server.py"],
    )
-   
+
    # For SSE connection
    manager.mcp_manager.register_sse_server(
        server_id="web_tools",
@@ -198,7 +198,7 @@ pytest tests/test_llm_registry.py
 The examples in the `examples/` directory serve as integration tests. Run them to ensure your changes work in a complete system:
 
 ```bash
-python -m hierarchical_agent_manager.examples.complex_hierarchy
+python -m synapticore.examples.complex_hierarchy
 ```
 
 ### Adding New Tests
@@ -272,7 +272,7 @@ The visualization logic is in `utils/visualization.py`. To modify:
 
 **Symptom**: `ImportError: langchain-openai is not installed.`
 
-**Solution**: Install the optional dependency: `pip install "hierarchical_agent_manager[openai]"` or `pip install langchain-openai`.
+**Solution**: Install the optional dependency: `pip install "synapticore[openai]"` or `pip install langchain-openai`.
 
 ### Debugging Tips
 

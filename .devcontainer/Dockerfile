@@ -71,7 +71,7 @@ RUN mkdir -p /workspaces/.cache/uv \
     /workspaces/logs \
     /workspaces/data
 
-# User configuration for Synapticore
+# User configuration for synapticore
 RUN groupadd -g 2000 synapticore && \
     useradd -u 2000 -g synapticore -m -s /bin/zsh synapticore-dev && \
     echo "synapticore-dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \

@@ -1,5 +1,5 @@
 {
-    "name": "Synapticore Dev Container",
+    "name": "synapticore Dev Container",
     "build": {
         "dockerfile": "Dockerfile",
         "context": "."

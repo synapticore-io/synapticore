@@ -161,7 +161,7 @@ if [ -f "/workspaces/omniverse/pyproject.toml" ]; then
     fi
 fi
 
-# Set up permissions for Synapticore user
+# Set up permissions for synapticore user
 if id "synapticore-dev" &>/dev/null; then
     echo "Setting up permissions..."
     for dir in /workspaces/.venv /workspaces/.cache /workspaces/data /workspaces/logs; do
