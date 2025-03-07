@@ -12,6 +12,42 @@ mkdir -p /workspaces/.cache/uv
 mkdir -p /workspaces/logs
 mkdir -p /workspaces/data
 
+# Set up SSH directory and permissions
+if [ -d ~/.ssh ]; then
+    echo "Setting up SSH directory permissions..."
+    chmod 700 ~/.ssh
+    chmod 600 ~/.ssh/* 2>/dev/null || true
+    chmod 644 ~/.ssh/*.pub 2>/dev/null || true
+    
+    # Start SSH agent if not running
+    if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+        echo "Starting SSH agent..."
+        eval "$(ssh-agent -s)"
+        echo "SSH agent started with PID $SSH_AGENT_PID"
+        
+        # Try to add keys
+        for key in ~/.ssh/id_ed25519 ~/.ssh/id_rsa; do
+            if [ -f "$key" ]; then
+                ssh-add "$key" 2>/dev/null && echo "Added SSH key: $key"
+            fi
+        done
+    else
+        echo "SSH agent already running at $SSH_AUTH_SOCK"
+    fi
+    
+    # Test SSH agent connection
+    ssh-add -l 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "SSH agent is working and has keys loaded"
+    elif [ $? -eq 1 ]; then
+        echo "SSH agent is working but has no keys loaded"
+    else
+        echo "SSH agent is not working properly"
+    fi
+else
+    echo "No SSH directory found. SSH functionality may be limited."
+fi
+
 # Check if the Docker group exists and add the user
 DOCKER_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo "")
 if [ -n "$DOCKER_GID" ]; then
@@ -131,6 +167,55 @@ if [ -f "$HOME/.zshrc" ]; then
     add_to_zshrc 'export PATH="$VIRTUAL_ENV/bin:$PATH"'
     add_to_zshrc 'export BUN_INSTALL="$HOME/.bun"'
     add_to_zshrc 'export PATH="$BUN_INSTALL/bin:$PATH"'
+    
+    # Add SSH agent configuration
+    if ! grep -q "# SSH agent configuration" "$HOME/.zshrc"; then
+        cat >> "$HOME/.zshrc" << EOF
+
+# SSH agent configuration
+# Start SSH agent if not running
+if [ -z "\$SSH_AUTH_SOCK" ] || [ ! -S "\$SSH_AUTH_SOCK" ]; then
+    echo "Starting SSH agent..."
+    eval "\$(ssh-agent -s)" > /dev/null
+    echo "SSH agent started"
+fi
+
+# Function to add SSH keys
+function add_ssh_keys() {
+    # Check if keys are already loaded
+    ssh-add -l &>/dev/null
+    if [ \$? -eq 1 ]; then
+        # Add default keys
+        for key in \$HOME/.ssh/id_ed25519 \$HOME/.ssh/id_rsa; do
+            if [ -f "\$key" ]; then
+                ssh-add "\$key" &>/dev/null && echo "Added SSH key: \$key"
+            fi
+        done
+    fi
+}
+
+# Try to add keys
+add_ssh_keys
+
+# Add SSH agent to .bashrc as well for non-zsh sessions
+if [ -f "\$HOME/.bashrc" ] && ! grep -q "SSH agent configuration" "\$HOME/.bashrc"; then
+    echo '
+# SSH agent configuration
+if [ -z "\$SSH_AUTH_SOCK" ] || [ ! -S "\$SSH_AUTH_SOCK" ]; then
+    eval "\$(ssh-agent -s)" > /dev/null
+fi
+
+# Add keys if needed
+for key in \$HOME/.ssh/id_ed25519 \$HOME/.ssh/id_rsa; do
+    if [ -f "\$key" ]; then
+        ssh-add -l | grep -q "\$key" || ssh-add "\$key" &>/dev/null
+    fi
+done
+' >> "\$HOME/.bashrc"
+fi
+
+EOF
+    fi
     
     # Add useful aliases
     if ! grep -q "# Useful aliases" "$HOME/.zshrc"; then
