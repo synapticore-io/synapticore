@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Avoid apt-get warnings
 ENV DEBIAN_FRONTEND=noninteractive
@@ -46,6 +46,13 @@ RUN apt-get update && apt-get install -y git-lfs && \
     rm -rf /var/lib/apt/lists/* && \
     git lfs install --system
 
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g npm@latest
+
 # Install Bun
 RUN curl -fsSL https://bun.sh/install | bash && \
     mv ~/.bun/bin/bun /usr/local/bin/bun
@@ -58,37 +65,46 @@ ENV LANG=de_DE.UTF-8 \
     LANGUAGE=de_DE:de \
     LC_ALL=de_DE.UTF-8
 
-# Set up working directory and UV cache
-WORKDIR /workspaces/synapticore
-ENV UV_CACHE_DIR=/workspaces/.cache/uv \
-    PYTHONDONTWRITEBYTECODE=1 \
+# Set up working directory
+WORKDIR /workspaces
+ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH}"
 
-# Create directories with proper permissions
-RUN mkdir -p /workspaces/.cache/uv \
-    /workspaces/.venv \
-    /workspaces/logs \
-    /workspaces/data
-
-# User configuration for synapticore
-RUN groupadd -g 2000 synapticore && \
-    useradd -u 2000 -g synapticore -m -s /bin/zsh synapticore-dev && \
-    echo "synapticore-dev ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    chown -R synapticore-dev:synapticore /workspaces
+# Create standard user
+RUN groupadd -g 1000 vscode && \
+    useradd -u 1000 -g vscode -m -s /bin/zsh vscode && \
+    echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    chown -R vscode:vscode /workspaces
 
 # Create a Docker group for use when the host has a different GID
 RUN groupadd -g 999 docker || true && \
-    usermod -aG docker synapticore-dev
+    usermod -aG docker vscode && \
+    # Create additional groups for Docker socket access
+    for gid in 998 997 996 995 994 993 992 991 990; do \
+    groupadd -g $gid docker$gid || true; \
+    usermod -aG docker$gid vscode || true; \
+    done
 
-# Copy entrypoint script
+# Copy entrypoint and setup scripts
 COPY ./entrypoint.sh /usr/local/bin/
+COPY ./setup.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/entrypoint.sh && \
-    chown synapticore-dev:synapticore /usr/local/bin/entrypoint.sh
+    chmod 755 /usr/local/bin/setup.sh && \
+    chown vscode:vscode /usr/local/bin/entrypoint.sh && \
+    chown vscode:vscode /usr/local/bin/setup.sh
+
+# Install global Node.js packages
+RUN npm install -g yarn pnpm vite@latest create-vite@latest typescript
 
 # Switch to user
-USER synapticore-dev
-WORKDIR /home/synapticore-dev
+USER vscode
+WORKDIR /home/vscode
+
+# Configure npm for user-level global installs
+RUN mkdir -p ~/.npm-global && \
+    npm config set prefix '~/.npm-global' && \
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
 
 # Install Oh-My-ZSH and configure
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
@@ -98,13 +114,13 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
     echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> ~/.zshrc
 
 # Return to workspace
-WORKDIR /workspaces/synapticore
+WORKDIR /workspaces
 
 # Install UV for the user
 RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/astral-sh/uv/releases/download/0.5.24/uv-installer.sh | sh
 
 # Add .local/bin to PATH
-ENV PATH="/home/synapticore-dev/.local/bin:$PATH"
+ENV PATH="/home/vscode/.local/bin:$PATH"
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,5 +1,5 @@
 {
-    "name": "synapticore Dev Container",
+    "name": "${localWorkspaceFolderBasename} Dev Container",
     "build": {
         "dockerfile": "Dockerfile",
         "context": "."
@@ -15,29 +15,40 @@
                 "ms-python.black-formatter",
                 "charliermarsh.ruff",
                 "njpwerner.autodocstring",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "Vue.volar",
+                "svelte.svelte-vscode",
+                "bradlc.vscode-tailwindcss",
+                "astro-build.astro-vscode",
                 "ms-azuretools.vscode-docker",
-                "github.copilot",
                 "github.vscode-github-actions",
+                "github.copilot",
                 "ms-vscode.makefile-tools",
                 "davidanson.vscode-markdownlint",
-                "esbenp.prettier-vscode",
                 "GitHub.vscode-pull-request-github",
                 "mhutchie.git-graph"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/workspaces/.venv/bin/python",
+                "python.defaultInterpreterPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/python",
                 "python.terminal.activateEnvironment": true,
-                "editor.formatOnSave": true,
                 "python.formatting.provider": "black",
                 "python.linting.enabled": true,
                 "python.linting.pylintEnabled": true,
-                "python.linting.pylintPath": "/workspaces/.venv/bin/pylint",
+                "python.linting.pylintPath": "/workspaces/${localWorkspaceFolderBasename}/.venv/bin/pylint",
+                "javascript.updateImportsOnFileMove.enabled": "always",
+                "typescript.updateImportsOnFileMove.enabled": "always",
+                "javascript.format.enable": true,
+                "typescript.format.enable": true,
+                "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "vue", "svelte"],
+                "editor.formatOnSave": true,
                 "editor.rulers": [
                     88,
                     120
                 ],
                 "editor.codeActionsOnSave": {
-                    "source.organizeImports": true
+                    "source.organizeImports": true,
+                    "source.fixAll.eslint": true
                 },
                 "files.trimTrailingWhitespace": true,
                 "terminal.integrated.defaultProfile.linux": "zsh",
@@ -56,9 +67,9 @@
             }
         }
     },
-    "postCreateCommand": "sudo mkdir -p /workspaces/.venv && sudo chown -R synapticore-dev:synapticore /workspaces/.venv",
-    "postStartCommand": "echo 'Development container started successfully!'",
-    "remoteUser": "synapticore-dev",
+    "postCreateCommand": "chmod +x ./.devcontainer/setup.sh && chmod +x ./.devcontainer/entrypoint.sh && ./.devcontainer/setup.sh",
+    "postStartCommand": "sudo chmod 666 /var/run/docker.sock 2>/dev/null || true; echo 'Development container started successfully!'",
+    "remoteUser": "vscode",
     "updateRemoteUserUID": true,
     "features": {
         "ghcr.io/devcontainers/features/git:1": {
@@ -70,21 +81,27 @@
         }
     },
     "mounts": [
-        "source=${localWorkspaceFolder}/.cache,target=/workspaces/.cache,type=bind,consistency=cached",
-        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/synapticore-dev/.ssh,type=bind,consistency=cached",
-        "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached"
+        "source=${localWorkspaceFolder}/.cache,target=/workspaces/${localWorkspaceFolderBasename}/.cache,type=bind,consistency=cached",
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached",
+        {
+            "source": "${localEnv:HOME}${localEnv:USERPROFILE}/.ssh",
+            "target": "/home/vscode/.ssh",
+            "type": "bind",
+            "consistency": "cached",
+            "readonly": true
+        }
     ],
     "remoteEnv": {
-        "SSH_AUTH_SOCK": "/ssh-agent",
         "NVIDIA_VISIBLE_DEVICES": "all",
         "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
-        "UV_CACHE_DIR": "/workspaces/.cache/uv",
+        "UV_CACHE_DIR": "/workspaces/${localWorkspaceFolderBasename}/.cache/uv",
         "UV_LINK_MODE": "copy",
-        "VIRTUAL_ENV": "/workspaces/.venv",
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/.venv/bin:/home/synapticore-dev/.local/bin:/home/synapticore-dev/.bun/bin:${PATH}",
+        "VIRTUAL_ENV": "/workspaces/${localWorkspaceFolderBasename}/.venv",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/${localWorkspaceFolderBasename}/.venv/bin:/home/vscode/.local/bin:/home/vscode/.bun/bin:/home/vscode/.npm-global/bin:${PATH}",
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONUNBUFFERED": "1",
-        "BUN_INSTALL": "/home/synapticore-dev/.bun"
+        "BUN_INSTALL": "/home/vscode/.bun",
+        "PROJECT_ROOT": "/workspaces/${localWorkspaceFolderBasename}",
+        "NODE_ENV": "development"
     }
 }
