@@ -1,4 +1,4 @@
-FROM qdrant/qdrant:v1.5.0
+FROM qdrant/qdrant:latest
 
 VOLUME /qdrant/storage
 
