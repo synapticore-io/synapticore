@@ -1,0 +1,80 @@
+{
+    "name": "Synapticore Dev Container",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "runArgs": [
+        "--gpus=all"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "njpwerner.autodocstring",
+                "ms-azuretools.vscode-docker",
+                "github.copilot",
+                "github.vscode-github-actions",
+                "ms-vscode.makefile-tools"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/workspaces/.venv/bin/python",
+                "python.terminal.activateEnvironment": true,
+                "editor.formatOnSave": true,
+                "python.formatting.provider": "black",
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true,
+                "python.linting.pylintPath": "/workspaces/.venv/bin/pylint",
+                "editor.rulers": [
+                    88,
+                    120
+                ],
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": true
+                },
+                "files.trimTrailingWhitespace": true,
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.profiles.linux": {
+                    "zsh": {
+                        "path": "/bin/zsh",
+                        "args": []
+                    },
+                    "bash": {
+                        "path": "/bin/bash",
+                        "args": [
+                            "-l"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "postCreateCommand": "/bin/bash -c 'export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH\" && if [ -f \"/workspaces/.venv/bin/pip\" ]; then /workspaces/.venv/bin/pip install mcp pydantic; else curl -sS https://bootstrap.pypa.io/get-pip.py | /workspaces/.venv/bin/python && /workspaces/.venv/bin/pip install mcp pydantic; fi'",
+    "postStartCommand": "/bin/bash -c 'echo \"Virtuelle Umgebung aktiviert: $VIRTUAL_ENV\"'",
+    "remoteUser": "synapticore-dev",
+    "updateRemoteUserUID": true,
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {
+            "version": "latest"
+        },
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    "mounts": [
+        "source=${localWorkspaceFolder}/.cache,target=/workspaces/.cache,type=bind,consistency=cached",
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/synapticore-dev/.ssh,type=bind,consistency=cached"
+    ],
+    "remoteEnv": {
+        "NVIDIA_VISIBLE_DEVICES": "all",
+        "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
+        "UV_CACHE_DIR": "/workspaces/.cache/uv",
+        "UV_LINK_MODE": "copy",
+        "VIRTUAL_ENV": "/workspaces/.venv",
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/workspaces/.venv/bin:/home/synapticore-dev/.local/bin:${PATH}",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONUNBUFFERED": "1"
+    }
+}
