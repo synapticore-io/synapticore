@@ -1,3 +1,8 @@
 services/qdrant/Dockerfile.bak
 services/docker-compose.yml.bak
 patch-qdrant.sh
+services/vault/tls/vault.crt
+services/vault/tls/vault.key
+redis_password.txt
+services/secrets/grafana_admin_password.txt
+services/secrets/mongo_root_password.txt
