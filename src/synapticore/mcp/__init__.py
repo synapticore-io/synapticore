@@ -1,7 +1,8 @@
-"""Message Control Protocol (MCP) manager for external tools and services."""
+"""Model Context Protocol (MCP) integration for Synapticore."""
 
-from mcp.client import ClientSession
-from mcp.client.stdio import stdio_client
-from mcp.client.sse import sse_client
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters
+from mcp.types import Tool, Resource, Prompt
+from .session_manager import MCPSessionManager, ConnectionType
 
-__all__ = ["MCPManager", "StdioConnection", "SSEConnection"]
+__all__ = ["MCPSessionManager", "ConnectionType"]
