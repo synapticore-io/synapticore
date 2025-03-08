@@ -29,5 +29,9 @@ RUN chmod +x /vault/init-vault.sh && \
 COPY scripts/reset-vault.sh /vault/reset-vault.sh
 RUN chmod +x /vault/reset-vault.sh
 
-# Fixed entrypoint to properly run the server and initialization
-ENTRYPOINT ["/bin/bash", "-c", "/vault/generate-tls.sh && /vault/reset-vault.sh && /bin/vault server -config=/vault/config/config.hcl & sleep 5 && /vault/init-vault.sh && wait"]
+# Hinzufügen eines Startup-Skripts, das alles koordiniert
+COPY scripts/startup.sh /vault/startup.sh
+RUN chmod +x /vault/startup.sh
+
+# Verwenden des Startup-Skripts als Entrypoint
+ENTRYPOINT ["/vault/startup.sh"]
