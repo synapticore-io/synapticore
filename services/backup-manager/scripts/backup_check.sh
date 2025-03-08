@@ -1,29 +1,58 @@
 #!/bin/bash
 set -e
 
-# Konfiguration
+# Configuration
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-ENCRYPTION_KEY=$(cat $ENCRYPTION_KEY_FILE)
 CHECK_DIR="/backup-data/check_$TIMESTAMP"
 LATEST_BACKUP=$(find /backup -type d -name "20*_*" | sort | tail -n 1)
 
 echo "[$TIMESTAMP] Performing integrity check on latest backup: $LATEST_BACKUP"
 
-# Erstelle temporäres Verzeichnis für die Überprüfung
+# Get encryption key from vault or file
+if [ "${USE_VAULT_SECRETS:-false}" = "true" ]; then
+  echo "Getting encryption key from Vault..."
+  
+  # Try to get Vault token from running Vault container
+  if [ -z "$VAULT_TOKEN" ]; then
+    ROOT_TOKEN=$(docker exec vault cat /vault/data/root_token.txt 2>/dev/null || echo "")
+    if [ -n "$ROOT_TOKEN" ]; then
+      export VAULT_TOKEN="$ROOT_TOKEN"
+    fi
+  fi
+  
+  # Get backup encryption key
+  BACKUP_SECRET=$(curl -s -k -H "X-Vault-Token: ${VAULT_TOKEN:-root}" \
+    "${VAULT_ADDR}/v1/secret/data/backup" || echo '{"data":{"data":{}}}')
+  ENCRYPTION_KEY=$(echo $BACKUP_SECRET | grep -o '"encryption_key":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+  
+  if [ -z "$ENCRYPTION_KEY" ]; then
+    echo "[$TIMESTAMP] ERROR: Could not retrieve encryption key from Vault"
+    exit 1
+  fi
+else
+  ENCRYPTION_KEY=$(cat "${ENCRYPTION_KEY_FILE:-/backup-data/backup_encryption_key.txt}" 2>/dev/null)
+  
+  if [ -z "$ENCRYPTION_KEY" ]; then
+    echo "[$TIMESTAMP] ERROR: Could not retrieve encryption key from file"
+    exit 1
+  fi
+fi
+
+# Create temporary directory for verification
 mkdir -p "$CHECK_DIR"
 
-# Prüfe, ob Manifest existiert und korrekt entschlüsselt werden kann
+# Check if manifest exists and can be decrypted correctly
 if [ -f "$LATEST_BACKUP/manifest.txt.enc" ]; then
   echo "[$TIMESTAMP] Verifying manifest file..."
   
-  # Versuche das Manifest zu entschlüsseln
+  # Try to decrypt the manifest
   if openssl enc -aes-256-cbc -d -salt -in "$LATEST_BACKUP/manifest.txt.enc" -out "$CHECK_DIR/manifest.txt" -k "$ENCRYPTION_KEY" -md sha256 2>/dev/null; then
     echo "[$TIMESTAMP] Manifest successfully decrypted."
     
-    # Prüfe Checksummen
+    # Check checksums
     grep -A 100 "Checksums:" "$CHECK_DIR/manifest.txt" | grep -v "Checksums:" | while read line; do
-      if [ ! -z "$line" ]; then
-        FILENAME=$(echo "$line" | cut -d':' -f1)
+      if [ -n "$line" ]; then
+        FILENAME=$(echo "$line" | cut -d':' -f1 | tr -d ' ')
         EXPECTED_CHECKSUM=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
         
         if [ -f "$LATEST_BACKUP/$FILENAME" ]; then
@@ -48,6 +77,6 @@ else
   echo "[$TIMESTAMP] ERROR: Manifest file not found in backup."
 fi
 
-# Aufräumen
+# Clean up
 rm -rf "$CHECK_DIR"
 echo "[$TIMESTAMP] Integrity check completed!"
