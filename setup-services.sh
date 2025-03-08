@@ -32,10 +32,10 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 # Basis-Verzeichnis
-BASE_DIR="/opt/secure-infrastructure"
+BASE_DIR="/workspaces/synapticore"
 SERVICES_DIR="${BASE_DIR}/services"
 SECRETS_DIR="${SERVICES_DIR}/secrets"
-BACKUP_DIR="/backup"
+BACKUP_DIR="${SERVICES_DIR}/backup"
 CERTS_DIR="${BASE_DIR}/certs"
 
 # Erstelle Verzeichnisstruktur
