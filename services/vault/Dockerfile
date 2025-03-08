@@ -25,5 +25,9 @@ COPY scripts/generate-tls.sh /vault/generate-tls.sh
 RUN chmod +x /vault/init-vault.sh && \
     chmod +x /vault/generate-tls.sh
 
+# Hinzufügen eines Reset-Skripts, um Initialisierungsprobleme zu beheben
+COPY scripts/reset-vault.sh /vault/reset-vault.sh
+RUN chmod +x /vault/reset-vault.sh
+
 # Fixed entrypoint to properly run the server and initialization
-ENTRYPOINT ["/bin/bash", "-c", "/vault/generate-tls.sh && /bin/vault server -config=/vault/config/config.hcl & sleep 5 && /vault/init-vault.sh && wait"]
+ENTRYPOINT ["/bin/bash", "-c", "/vault/generate-tls.sh && /vault/reset-vault.sh && /bin/vault server -config=/vault/config/config.hcl & sleep 5 && /vault/init-vault.sh && wait"]

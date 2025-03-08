@@ -4,10 +4,17 @@ set -e
 export VAULT_ADDR="https://127.0.0.1:8200"
 export VAULT_SKIP_VERIFY="true"
 
-# Check if Vault is initialized
-initialized=$(curl -s -k $VAULT_ADDR/v1/sys/init | grep -c '"initialized":true' || echo "0")
+# Warten, bis Vault bereit ist
+echo "Waiting for Vault to start..."
+until curl -s -k $VAULT_ADDR/v1/sys/health > /dev/null 2>&1; do
+  echo "Waiting for Vault to become available..."
+  sleep 1
+done
 
-if [ "$initialized" = "0" ]; then
+# Check if Vault is initialized
+initialized=$(curl -s -k $VAULT_ADDR/v1/sys/init | jq -r '.initialized')
+
+if [ "$initialized" = "false" ]; then
   echo "Initializing Vault..."
   
   # Initialize Vault with 1 key share and 1 key threshold (for development/testing)
@@ -30,9 +37,9 @@ else
 fi
 
 # Check if Vault is sealed
-sealed=$(curl -s -k $VAULT_ADDR/v1/sys/seal-status | grep -c '"sealed":true' || echo "0")
+sealed=$(curl -s -k $VAULT_ADDR/v1/sys/seal-status | jq -r '.sealed')
 
-if [ "$sealed" = "1" ]; then
+if [ "$sealed" = "true" ]; then
   echo "Unsealing Vault..."
   
   # Get unseal key
@@ -59,11 +66,39 @@ export VAULT_TOKEN="$ROOT_TOKEN"
 
 echo "Setting up initial secrets..."
 
+# Enable Transit Secret Engine for Auto-Unseal
+TRANSIT_ENABLED=$(curl -s -k -H "X-Vault-Token: $ROOT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"transit/"' || echo "0")
+if [ "$TRANSIT_ENABLED" = "0" ]; then
+  echo "Enabling Transit Secret Engine for Auto-Unseal..."
+  curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{"type":"transit"}' $VAULT_ADDR/v1/sys/mounts/transit
+  
+  # Create encryption key for Auto-Unseal
+  curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{}' $VAULT_ADDR/v1/transit/keys/autounseal
+  
+  # Create policy for Auto-Unseal
+  curl -s -k -X PUT -H "X-Vault-Token: $ROOT_TOKEN" -d '{
+    "policy": "path \"transit/encrypt/autounseal\" { capabilities = [ \"update\" ] }\npath \"transit/decrypt/autounseal\" { capabilities = [ \"update\" ] }"
+  }' $VAULT_ADDR/v1/sys/policies/acl/autounseal
+  
+  # Create token for Auto-Unseal
+  TRANSIT_TOKEN_RESPONSE=$(curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{
+    "policies": ["autounseal"],
+    "ttl": "24h",
+    "renewable": true
+  }' $VAULT_ADDR/v1/auth/token/create)
+  
+  TRANSIT_TOKEN=$(echo $TRANSIT_TOKEN_RESPONSE | jq -r .auth.client_token)
+  echo $TRANSIT_TOKEN > /vault/data/transit-token.txt
+  chmod 600 /vault/data/transit-token.txt
+  
+  echo "Transit Secret Engine configured for Auto-Unseal!"
+fi
+
 # Enable KV secrets engine version 2 if not already enabled
-SECRETS_ENABLED=$(curl -s -k -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"secret/"' || echo "0")
+SECRETS_ENABLED=$(curl -s -k -H "X-Vault-Token: $ROOT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"secret/"' || echo "0")
 if [ "$SECRETS_ENABLED" = "0" ]; then
   echo "Enabling KV secrets engine..."
-  curl -s -k -X POST -H "X-Vault-Token: $VAULT_TOKEN" -d '{"type":"kv","options":{"version":"2"}}' $VAULT_ADDR/v1/sys/mounts/secret
+  curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{"type":"kv","options":{"version":"2"}}' $VAULT_ADDR/v1/sys/mounts/secret
 fi
 
 # Generate random passwords if they don't exist in Vault
