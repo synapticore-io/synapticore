@@ -7,5 +7,6 @@ VOLUME /var/log/mongodb
 EXPOSE 27017
 
 COPY config/mongod.conf /etc/mongod.conf
+COPY scripts/init-mongodb.sh /docker-entrypoint-initdb.d/
 
 CMD ["mongod", "--config", "/etc/mongod.conf"]

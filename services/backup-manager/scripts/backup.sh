@@ -10,7 +10,7 @@ get_secrets() {
   if [ "${USE_VAULT_SECRETS:-false}" = "true" ]; then
     echo "Getting secrets from Vault..."
     
-    # Try to get Vault token from running Vault container
+    # Try to get Vault token
     if [ -z "$VAULT_TOKEN" ]; then
       ROOT_TOKEN=$(docker exec vault cat /vault/data/root_token.txt 2>/dev/null || echo "")
       if [ -n "$ROOT_TOKEN" ]; then
@@ -32,6 +32,11 @@ get_secrets() {
     BACKUP_SECRET=$(curl -s -k -H "X-Vault-Token: ${VAULT_TOKEN:-root}" \
       "${VAULT_ADDR}/v1/secret/data/backup" || echo '{"data":{"data":{}}}')
     ENCRYPTION_KEY=$(echo $BACKUP_SECRET | grep -o '"encryption_key":"[^"]*"' | cut -d':' -f2 | tr -d '"')
+    
+    # Fallback if empty
+    MONGO_PASSWORD=${MONGO_PASSWORD:-admin}
+    REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+    ENCRYPTION_KEY=${ENCRYPTION_KEY:-"backup-encryption-key"}
   else
     echo "Using local secrets..."
     
@@ -58,45 +63,73 @@ encrypt_backup() {
   echo "Encrypted: $src_file -> $dest_file"
 }
 
-# Backup MongoDB
+# Check if container exists
+container_exists() {
+  docker ps -q -f name="^/$1$" | grep -q .
+}
+
+# Backup MongoDB if it exists
 echo "[$TIMESTAMP] Backing up MongoDB..."
-mkdir -p "$BACKUP_DIR/mongodb"
-docker exec mongodb mongodump --username admin --password "$MONGO_PASSWORD" --out /tmp/backup
-docker cp mongodb:/tmp/backup "$BACKUP_DIR/mongodb"
-docker exec mongodb rm -rf /tmp/backup
-tar -czf "$BACKUP_DIR/mongodb_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" mongodb
-rm -rf "$BACKUP_DIR/mongodb"
-encrypt_backup "$BACKUP_DIR/mongodb_$TIMESTAMP.tar.gz"
-
-# Backup Redis
-echo "[$TIMESTAMP] Backing up Redis..."
-mkdir -p "$BACKUP_DIR/redis"
-# Ensure Redis SAVE is executed
-if [ -n "$REDIS_PASSWORD" ]; then
-  docker exec redis redis-cli -a "$REDIS_PASSWORD" SAVE
+if container_exists "mongodb"; then
+  mkdir -p "$BACKUP_DIR/mongodb"
+  
+  # Check if authentication is needed
+  if docker exec mongodb mongo --eval "db.stats()" &>/dev/null; then
+    docker exec mongodb mongodump --out /tmp/backup
+  else
+    docker exec mongodb mongodump --username admin --password "$MONGO_PASSWORD" --out /tmp/backup
+  fi
+  
+  docker cp mongodb:/tmp/backup "$BACKUP_DIR/mongodb"
+  docker exec mongodb rm -rf /tmp/backup
+  tar -czf "$BACKUP_DIR/mongodb_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" mongodb
+  rm -rf "$BACKUP_DIR/mongodb"
+  encrypt_backup "$BACKUP_DIR/mongodb_$TIMESTAMP.tar.gz"
 else
-  docker exec redis redis-cli SAVE
+  echo "[$TIMESTAMP] MongoDB container not found, skipping backup."
 fi
-docker cp redis:/data "$BACKUP_DIR/redis"
-tar -czf "$BACKUP_DIR/redis_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" redis
-rm -rf "$BACKUP_DIR/redis"
-encrypt_backup "$BACKUP_DIR/redis_$TIMESTAMP.tar.gz"
 
-# Backup Vault
+# Backup Redis if it exists
+echo "[$TIMESTAMP] Backing up Redis..."
+if container_exists "redis"; then
+  mkdir -p "$BACKUP_DIR/redis"
+  # Ensure Redis SAVE is executed
+  if [ -n "$REDIS_PASSWORD" ]; then
+    docker exec redis redis-cli -a "$REDIS_PASSWORD" SAVE
+  else
+    docker exec redis redis-cli SAVE
+  fi
+  docker cp redis:/data "$BACKUP_DIR/redis"
+  tar -czf "$BACKUP_DIR/redis_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" redis
+  rm -rf "$BACKUP_DIR/redis"
+  encrypt_backup "$BACKUP_DIR/redis_$TIMESTAMP.tar.gz"
+else
+  echo "[$TIMESTAMP] Redis container not found, skipping backup."
+fi
+
+# Backup Vault if it exists
 echo "[$TIMESTAMP] Backing up Vault..."
-mkdir -p "$BACKUP_DIR/vault"
-docker cp vault:/vault/data "$BACKUP_DIR/vault"
-tar -czf "$BACKUP_DIR/vault_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" vault
-rm -rf "$BACKUP_DIR/vault"
-encrypt_backup "$BACKUP_DIR/vault_$TIMESTAMP.tar.gz"
+if container_exists "vault"; then
+  mkdir -p "$BACKUP_DIR/vault"
+  docker cp vault:/vault/data "$BACKUP_DIR/vault"
+  tar -czf "$BACKUP_DIR/vault_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" vault
+  rm -rf "$BACKUP_DIR/vault"
+  encrypt_backup "$BACKUP_DIR/vault_$TIMESTAMP.tar.gz"
+else
+  echo "[$TIMESTAMP] Vault container not found, skipping backup."
+fi
 
-# Backup Qdrant
+# Backup Qdrant if it exists
 echo "[$TIMESTAMP] Backing up Qdrant..."
-mkdir -p "$BACKUP_DIR/qdrant"
-docker cp qdrant:/qdrant/storage "$BACKUP_DIR/qdrant"
-tar -czf "$BACKUP_DIR/qdrant_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" qdrant
-rm -rf "$BACKUP_DIR/qdrant"
-encrypt_backup "$BACKUP_DIR/qdrant_$TIMESTAMP.tar.gz"
+if container_exists "qdrant"; then
+  mkdir -p "$BACKUP_DIR/qdrant"
+  docker cp qdrant:/qdrant/storage "$BACKUP_DIR/qdrant"
+  tar -czf "$BACKUP_DIR/qdrant_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" qdrant
+  rm -rf "$BACKUP_DIR/qdrant"
+  encrypt_backup "$BACKUP_DIR/qdrant_$TIMESTAMP.tar.gz"
+else
+  echo "[$TIMESTAMP] Qdrant container not found, skipping backup."
+fi
 
 # Create backup manifest with SHA256 checksums
 echo "[$TIMESTAMP] Creating backup manifest..."
@@ -105,8 +138,10 @@ echo "Services: MongoDB, Redis, Vault, Qdrant" >> "$BACKUP_DIR/manifest.txt"
 echo "" >> "$BACKUP_DIR/manifest.txt"
 echo "Checksums:" >> "$BACKUP_DIR/manifest.txt"
 for file in "$BACKUP_DIR"/*.enc; do
-  CHECKSUM=$(sha256sum "$file" | cut -d' ' -f1)
-  echo "$(basename "$file"): $CHECKSUM" >> "$BACKUP_DIR/manifest.txt"
+  if [ -f "$file" ]; then
+    CHECKSUM=$(sha256sum "$file" | cut -d' ' -f1)
+    echo "$(basename "$file"): $CHECKSUM" >> "$BACKUP_DIR/manifest.txt"
+  fi
 done
 
 # Encrypt the manifest itself

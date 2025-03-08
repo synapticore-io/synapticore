@@ -1,30 +1,26 @@
 ui = true
 disable_mlock = true
 
-# Hochverfügbare Konfiguration
-cluster_name = "vault-cluster"
-
-# Verbesserte Datenspeicherung mit Integrated Storage (Raft)
+# Storage-Konfiguration
 storage "raft" {
   path = "/vault/data"
   node_id = "vault_1"
 }
 
-# TLS-Konfiguration für sichere Kommunikation
+# Listener-Konfiguration, TLS für einfachere Tests zunächst deaktiviert
 listener "tcp" {
   address     = "0.0.0.0:8200"
-  tls_cert_file = "/vault/tls/vault.crt"
-  tls_key_file  = "/vault/tls/vault.key"
+  tls_disable = 1
 }
 
-api_addr = "https://0.0.0.0:8200"
-cluster_addr = "https://0.0.0.0:8201"
+api_addr = "http://0.0.0.0:8200"
+cluster_addr = "http://0.0.0.0:8201"
 
 # Performance und Stabilität
 default_lease_ttl = "768h"
 max_lease_ttl = "768h"
 
-# Verbesserte Sicherheitseinstellungen
+# Telemetrie
 telemetry {
   prometheus_retention_time = "24h"
   disable_hostname = true

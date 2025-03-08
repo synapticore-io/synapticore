@@ -10,34 +10,32 @@ service:
   # Port to bind the gRPC API
   grpc_port: 6334
   
-  # Enable HTTPS mode for REST API
-  enable_tls: true
+  # Enable HTTPS mode for REST API (deaktiviert für einfachere Tests)
+  enable_tls: false
   # Path to TLS certificate file
   tls_cert_path: /qdrant/tls/qdrant.crt
   # Path to TLS private key file
   tls_key_path: /qdrant/tls/qdrant.key
   
   # Enable TLS for gRPC API
-  grpc_enable_tls: true
+  grpc_enable_tls: false
   # Path to TLS certificate file for gRPC
   grpc_tls_cert_path: /qdrant/tls/qdrant.crt
   # Path to TLS private key file for gRPC
   grpc_tls_key_path: /qdrant/tls/qdrant.key
 
-storage:
-  # Default vector index params
-  optimizers:
-    # Default optimization settings for the vector index building
-    default_segment_number: 2
-    memmap_threshold: 10000
-    indexing_threshold: 20000
-    max_segment_size: 100000
+optimizers:
+  # Default optimization settings for the vector index building
+  default_segment_number: 2
+  memmap_threshold: 10000
+  indexing_threshold: 20000
+  max_segment_size: 100000
 
-  # Default performance settings
-  performance:
-    # Performance optimization params
-    max_search_threads: 0
-    parallel_indices_creation: true
+# Default performance settings
+performance:
+  # Performance optimization params
+  max_search_threads: 0
+  parallel_indices_creation: true
 
 telemetry:
   # Whether to report anonymous telemetry to Qdrant team

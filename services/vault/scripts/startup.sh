@@ -1,8 +1,44 @@
 #!/bin/bash
 set -e
 
-# TLS-Zertifikate generieren
-/vault/generate-tls.sh
+# Transit-Server Konfiguration überschreiben falls aktiviert
+if [ "${VAULT_TRANSIT_SERVER:-false}" = "true" ]; then
+  echo "Konfiguriere als Transit-Server..."
+  cat > /vault/config/config.hcl << 'EOT'
+ui = true
+disable_mlock = true
+
+storage "raft" {
+  path = "/vault/data"
+  node_id = "vault_transit_1"
+}
+
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+  tls_disable = 1
+}
+
+api_addr = "http://0.0.0.0:8200"
+cluster_addr = "http://0.0.0.0:8201"
+
+default_lease_ttl = "768h"
+max_lease_ttl = "768h"
+
+telemetry {
+  prometheus_retention_time = "24h"
+  disable_hostname = true
+}
+
+log_level = "info"
+log_format = "json"
+EOT
+fi
+
+# TLS-Zertifikate generieren wenn benötigt
+if grep -q "tls_disable = 0" /vault/config/config.hcl; then
+  echo "TLS aktiviert, generiere Zertifikate..."
+  /vault/generate-tls.sh
+fi
 
 # Vault-Daten zurücksetzen, falls erforderlich
 /vault/reset-vault.sh
@@ -17,7 +53,7 @@ echo "Waiting for Vault to start..."
 MAX_RETRIES=30
 RETRY_COUNT=0
 
-while ! curl -s -k https://127.0.0.1:8200/v1/sys/health > /dev/null 2>&1; do
+while ! curl -s -k ${VAULT_ADDR:-http://127.0.0.1:8200}/v1/sys/health > /dev/null 2>&1; do
   echo "Waiting for Vault to become available... (Attempt $((RETRY_COUNT+1))/$MAX_RETRIES)"
   sleep 2
   
@@ -52,4 +88,4 @@ echo "Vault server is running. Initializing and unsealing..."
 
 # Auf den Vault-Prozess warten
 echo "Vault setup completed. Waiting for Vault server process..."
-wait $VAULT_PID 
+wait $VAULT_PID
