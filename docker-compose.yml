@@ -8,7 +8,7 @@ services:
       - "8200:8200"
       - "8201:8201"
     volumes:
-      - ./services/vault/data:/vault/data
+      - vault-data:/vault/data
       - ./services/vault/logs:/vault/logs
       - ./services/vault/config:/vault/config
       - ./services/vault/tls:/vault/tls:ro
@@ -42,13 +42,16 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./services/redis/data:/data
+      - redis-data:/data
       - ./services/redis/config:/usr/local/etc/redis
+    environment:
+      - VAULT_ADDR=https://vault:8200
+      - VAULT_SKIP_VERIFY=true
     restart: unless-stopped
     networks:
       - backend
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -57,10 +60,9 @@ services:
         limits:
           cpus: '0.5'
           memory: 1G
-    secrets:
-      - redis_password
-    environment:
-      - REDIS_PASSWORD_FILE=/run/secrets/redis_password
+    depends_on:
+      vault:
+        condition: service_healthy
 
   qdrant:
     build: ./services/qdrant
@@ -69,7 +71,7 @@ services:
       - "6333:6333"
       - "6334:6334"
     volumes:
-      - ./services/qdrant/data:/qdrant/storage
+      - qdrant-data:/qdrant/storage
     restart: unless-stopped
     networks:
       - backend
@@ -91,12 +93,12 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ./services/mongodb/data:/data/db
+      - mongodb-data:/data/db
       - ./services/mongodb/config:/etc/mongo
       - ./services/mongodb/logs:/var/log/mongodb
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo_root_password
+      - MONGO_INITDB_ROOT_PASSWORD=changeme # Will be replaced by automation after vault is initialized
     restart: unless-stopped
     networks:
       - backend
@@ -110,15 +112,16 @@ services:
         limits:
           cpus: '1'
           memory: 2G
-    secrets:
-      - mongo_root_password
+    depends_on:
+      vault:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:v2.43.0
     container_name: prometheus
     volumes:
       - ./services/prometheus/config:/etc/prometheus
-      - ./services/prometheus/data:/prometheus
+      - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -139,11 +142,14 @@ services:
     image: grafana/grafana:9.5.1
     container_name: grafana
     volumes:
-      - ./services/grafana/data:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
       - ./services/grafana/provisioning:/etc/grafana/provisioning
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # Will be replaced by automation
       - GF_USERS_ALLOW_SIGN_UP=false
+      - VAULT_ADDR=https://vault:8200
+      - VAULT_SKIP_VERIFY=true
     ports:
       - "3000:3000"
     restart: unless-stopped
@@ -155,8 +161,9 @@ services:
         limits:
           cpus: '0.5'
           memory: 1G
-    secrets:
-      - grafana_admin_password
+    depends_on:
+      vault:
+        condition: service_healthy
 
   backup-manager:
     build:
@@ -166,15 +173,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./services/backup-manager/scripts:/scripts
-      - ./services/backup-manager/data:/backup-data
-      - /backup:/backup
-      - ./services/secrets:/secrets:ro
+      - backup-data:/backup-data
+      - backup-volume:/backup
     environment:
       - BACKUP_RETENTION_DAYS=14
-      - ENCRYPTION_KEY_FILE=/secrets/backup_encryption_key.txt
       - REMOTE_BACKUP=false
       - S3_BUCKET=your-backup-bucket
       - AWS_REGION=eu-central-1
+      - VAULT_ADDR=https://vault:8200
+      - VAULT_SKIP_VERIFY=true
+      - RUN_INITIAL_BACKUP=false
     restart: unless-stopped
     networks:
       - backend
@@ -183,14 +191,15 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
-
-secrets:
-  mongo_root_password:
-    file: ./services/secrets/mongo_root_password.txt
-  redis_password:
-    file: ./services/secrets/redis_password.txt
-  grafana_admin_password:
-    file: ./services/secrets/grafana_admin_password.txt
+    depends_on:
+      vault:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
 
 networks:
   frontend:
@@ -198,3 +207,13 @@ networks:
   backend:
     driver: bridge
     internal: true
+
+volumes:
+  vault-data:
+  redis-data:
+  mongodb-data:
+  qdrant-data:
+  prometheus-data:
+  grafana-data:
+  backup-data:
+  backup-volume:
