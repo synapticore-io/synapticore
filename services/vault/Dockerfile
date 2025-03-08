@@ -18,7 +18,9 @@ EXPOSE 8201
 
 COPY config/config.hcl /vault/config/config.hcl
 COPY scripts/init-vault.sh /vault/init-vault.sh
+COPY scripts/setup-secrets.sh /vault/setup-secrets.sh
 
-RUN chmod +x /vault/init-vault.sh
+RUN chmod +x /vault/init-vault.sh /vault/setup-secrets.sh
 
-ENTRYPOINT ["/bin/bash", "-c", "vault server -config=/vault/config/config.hcl && /vault/init-vault.sh"]
+# Fixed entrypoint to properly run the server and initialization
+ENTRYPOINT ["/bin/bash", "-c", "/bin/vault server -config=/vault/config/config.hcl & sleep 10 && /vault/init-vault.sh && /vault/setup-secrets.sh && wait"]
