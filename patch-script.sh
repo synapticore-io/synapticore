@@ -1,3 +1,6 @@
+#!/bin/bash
+
+cat > session_manager.py << 'EOF'
 import asyncio
 import logging
 from contextlib import asynccontextmanager
@@ -252,3 +255,6 @@ async def example():
 
 if __name__ == "__main__":
     asyncio.run(example())
+EOF
+
+echo "Optimierter MCP Session Manager wurde in session_manager.py geschrieben."

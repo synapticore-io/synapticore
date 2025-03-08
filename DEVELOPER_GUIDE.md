@@ -22,14 +22,19 @@ The Synapticore framework follows a modular architecture designed to facilitate 
 src/
 └── synapticore/
     ├── llms/             # LLM Registry and model management
-    ├── mcp/              # MCP integration for external tools
+    ├── mcp/              # MCP session and tool management
     ├── agents/           # Agent and supervisor management
-    ├── utils/            # Utility functions (visualization, etc.)
-    ├── examples/         # Usage examples
-    └── tests/            # Test suite
+    ├── utils/            # Utility functions
+examples/         # Usage examples
+tests/            # Test suite
+└── synapticore/
+    ├── llms/             # LLM Registry and model management tests
+    ├── mcp/              # MCP session and tool management tests
+    ├── agents/           # Agent and supervisor management test
 ```
 
 The system uses a hierarchical approach where:
+
 - **Leaf nodes** are specialized agents with specific tools and capabilities
 - **Intermediate nodes** are supervisors that manage groups of agents
 - **Root nodes** are top-level supervisors that coordinate the entire system
@@ -129,6 +134,7 @@ This repository includes a DevContainer configuration for VSCode, which provides
 ### Adding Support for a New LLM Provider
 
 1. Add a new method to `LLMRegistry` following this pattern:
+
    ```python
    def register_new_provider(
        self,
@@ -151,6 +157,7 @@ This repository includes a DevContainer configuration for VSCode, which provides
 ### Creating a New Agent Type
 
 1. Create a new function in `agents/types.py` (you may need to create this file):
+
    ```python
    def create_custom_agent(
        model: LanguageModelLike,
@@ -171,6 +178,7 @@ This repository includes a DevContainer configuration for VSCode, which provides
 ### Creating an MCP Server
 
 1. Define your tools using the MCP protocol:
+
    ```python
    from mcp.server import ToolServerProtocol, register_tool, run
 
@@ -185,6 +193,7 @@ This repository includes a DevContainer configuration for VSCode, which provides
    ```
 
 2. Register the server with the MCP Manager:
+
    ```python
    # For stdio connection
    manager.mcp_manager.register_stdio_server(
@@ -201,6 +210,7 @@ This repository includes a DevContainer configuration for VSCode, which provides
    ```
 
 3. Initialize the MCP Manager:
+
    ```python
    await manager.mcp_manager.initialize()
    ```
@@ -218,11 +228,13 @@ This repository includes a DevContainer configuration for VSCode, which provides
 ### Unit Tests
 
 Run the full test suite:
+
 ```bash
 pytest
 ```
 
 Test a specific module:
+
 ```bash
 pytest tests/test_llm_registry.py
 ```
@@ -247,6 +259,7 @@ python -m synapticore.examples.complex_hierarchy
 
 1. Update `pyproject.toml` with the new dependency
 2. For optional dependencies, add them to the appropriate section:
+
    ```toml
    [project.optional-dependencies]
    new-feature = ["new-package>=1.0.0"]

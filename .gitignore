@@ -14,3 +14,4 @@ certs/vault.crt
 certs/vault.csr
 certs/vault.ext
 certs/vault.key
+uv.lock
