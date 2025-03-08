@@ -7,3 +7,10 @@ services/vault/tls/ca.crt
 redis_password.txt
 services/secrets/grafana_admin_password.txt
 services/secrets/mongo_root_password.txt
+certs/ca.crt
+certs/ca.key
+certs/ca.srl
+certs/vault.crt
+certs/vault.csr
+certs/vault.ext
+certs/vault.key
