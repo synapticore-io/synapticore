@@ -18,6 +18,13 @@ dependencies = [
     "langgraph>=0.0.20",
     "pydantic>=2.5.0",
     "python-dotenv>=1.0.0",
+    "fastapi>=0.115.11",
+    "uvicorn>=0.34.0",
+    "langchain-redis>=0.2.0",
+    "langchain-qdrant>=0.2.0",
+    "langchain-mongodb>=0.5.0",
+    "langfuse>=2.59.7",
+    "langgraph-supervisor>=0.0.8",
 ]
 requires-python = ">=3.10"
 

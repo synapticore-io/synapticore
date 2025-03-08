@@ -15,3 +15,8 @@ certs/vault.csr
 certs/vault.ext
 certs/vault.key
 uv.lock
+src/synapticore.egg-info/dependency_links.txt
+src/synapticore.egg-info/PKG-INFO
+src/synapticore.egg-info/requires.txt
+src/synapticore.egg-info/SOURCES.txt
+src/synapticore.egg-info/top_level.txt
