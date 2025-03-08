@@ -1,28 +1,70 @@
 #!/bin/bash
 set -e
 
-# This script sets up initial secrets in Vault for other services to use
+export VAULT_ADDR="https://127.0.0.1:8200"
+export VAULT_SKIP_VERIFY="true"
 
-# Check if Vault is unsealed
-SEALED=$(curl -s -k https://127.0.0.1:8200/v1/sys/seal-status | grep -c '"sealed":true')
-if [ "$SEALED" -eq 1 ]; then
-  echo "Vault is still sealed. Cannot setup secrets."
-  exit 1
+# Check if Vault is initialized
+initialized=$(curl -s -k $VAULT_ADDR/v1/sys/init | grep -c '"initialized":true' || echo "0")
+
+if [ "$initialized" = "0" ]; then
+  echo "Initializing Vault..."
+  
+  # Initialize Vault with 1 key share and 1 key threshold (for development/testing)
+  INIT_RESPONSE=$(curl -s -k -X PUT -d '{"secret_shares": 1, "secret_threshold": 1}' $VAULT_ADDR/v1/sys/init)
+  
+  # Extract keys and token
+  UNSEAL_KEY=$(echo $INIT_RESPONSE | jq -r .keys[0])
+  ROOT_TOKEN=$(echo $INIT_RESPONSE | jq -r .root_token)
+  
+  # Save keys and token to files for later use
+  echo $UNSEAL_KEY > /vault/data/unseal_key.txt
+  echo $ROOT_TOKEN > /vault/data/root_token.txt
+  
+  # Set permissions
+  chmod 600 /vault/data/unseal_key.txt /vault/data/root_token.txt
+  
+  echo "Vault initialized!"
+else
+  echo "Vault already initialized"
 fi
 
-# Check if root token exists
+# Check if Vault is sealed
+sealed=$(curl -s -k $VAULT_ADDR/v1/sys/seal-status | grep -c '"sealed":true' || echo "0")
+
+if [ "$sealed" = "1" ]; then
+  echo "Unsealing Vault..."
+  
+  # Get unseal key
+  if [ -f /vault/data/unseal_key.txt ]; then
+    UNSEAL_KEY=$(cat /vault/data/unseal_key.txt)
+    curl -s -k -X PUT -d "{\"key\": \"$UNSEAL_KEY\"}" $VAULT_ADDR/v1/sys/unseal
+    echo "Vault unsealed!"
+  else
+    echo "Unseal key not found"
+    exit 1
+  fi
+else
+  echo "Vault already unsealed"
+fi
+
+# Get root token
 if [ ! -f /vault/data/root_token.txt ]; then
   echo "Root token not found. Cannot setup secrets."
   exit 1
 fi
 
-# Get root token
 ROOT_TOKEN=$(cat /vault/data/root_token.txt)
 export VAULT_TOKEN="$ROOT_TOKEN"
-export VAULT_ADDR="https://127.0.0.1:8200"
-export VAULT_SKIP_VERIFY="true"
 
 echo "Setting up initial secrets..."
+
+# Enable KV secrets engine version 2 if not already enabled
+SECRETS_ENABLED=$(curl -s -k -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"secret/"' || echo "0")
+if [ "$SECRETS_ENABLED" = "0" ]; then
+  echo "Enabling KV secrets engine..."
+  curl -s -k -X POST -H "X-Vault-Token: $VAULT_TOKEN" -d '{"type":"kv","options":{"version":"2"}}' $VAULT_ADDR/v1/sys/mounts/secret
+fi
 
 # Generate random passwords if they don't exist in Vault
 MONGO_SECRET_EXISTS=$(vault kv get -format=json secret/mongodb 2>/dev/null || echo '{"data":{"data":{}}}')

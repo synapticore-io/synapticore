@@ -9,9 +9,11 @@ storage "raft" {
   path = "/vault/data"
   node_id = "vault_1"
   
-  retry_join {
-    leader_api_addr = "https://127.0.0.1:8200"
-  }
+  # Die folgende Zeile auskommentieren oder entfernen, da sie nicht benötigt wird
+  # für einen einzelnen Knoten und TLS-Probleme verursacht
+  # retry_join {
+  #   leader_api_addr = "https://127.0.0.1:8200"
+  # }
 }
 
 # TLS-aktivierter Listener
