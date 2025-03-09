@@ -1,24 +1,25 @@
 #!/bin/bash
 set -e
 
-export VAULT_ADDR="https://127.0.0.1:8200"
+# Nutze HTTP statt HTTPS da TLS deaktiviert ist
+export VAULT_ADDR="http://127.0.0.1:8200"
 export VAULT_SKIP_VERIFY="true"
 
 # Warten, bis Vault bereit ist
 echo "Waiting for Vault to start..."
-until curl -s -k $VAULT_ADDR/v1/sys/health > /dev/null 2>&1; do
+until curl -s $VAULT_ADDR/v1/sys/health > /dev/null 2>&1; do
   echo "Waiting for Vault to become available..."
   sleep 1
 done
 
 # Check if Vault is initialized
-initialized=$(curl -s -k $VAULT_ADDR/v1/sys/init | jq -r '.initialized')
+initialized=$(curl -s $VAULT_ADDR/v1/sys/init | jq -r '.initialized')
 
 if [ "$initialized" = "false" ]; then
   echo "Initializing Vault..."
   
   # Initialize Vault with 1 key share and 1 key threshold (for development/testing)
-  INIT_RESPONSE=$(curl -s -k -X PUT -d '{"secret_shares": 1, "secret_threshold": 1}' $VAULT_ADDR/v1/sys/init)
+  INIT_RESPONSE=$(curl -s -X PUT -d '{"secret_shares": 1, "secret_threshold": 1}' $VAULT_ADDR/v1/sys/init)
   
   # Extract keys and token
   UNSEAL_KEY=$(echo $INIT_RESPONSE | jq -r .keys[0])
@@ -42,7 +43,7 @@ else
 fi
 
 # Check if Vault is sealed
-sealed=$(curl -s -k $VAULT_ADDR/v1/sys/seal-status | jq -r '.sealed')
+sealed=$(curl -s $VAULT_ADDR/v1/sys/seal-status | jq -r '.sealed')
 
 if [ "$sealed" = "true" ]; then
   echo "Unsealing Vault..."
@@ -50,7 +51,7 @@ if [ "$sealed" = "true" ]; then
   # Get unseal key
   if [ -f /vault/data/unseal_key.txt ]; then
     UNSEAL_KEY=$(cat /vault/data/unseal_key.txt)
-    curl -s -k -X PUT -d "{\"key\": \"$UNSEAL_KEY\"}" $VAULT_ADDR/v1/sys/unseal
+    curl -s -X PUT -d "{\"key\": \"$UNSEAL_KEY\"}" $VAULT_ADDR/v1/sys/unseal
     echo "Vault unsealed!"
   else
     echo "Unseal key not found"
@@ -72,27 +73,26 @@ export VAULT_TOKEN="$ROOT_TOKEN"
 echo "Setting up initial secrets..."
 
 # Enable KV secrets engine version 2 if not already enabled
-SECRETS_ENABLED=$(curl -s -k -H "X-Vault-Token: $ROOT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"secret/"' || echo "0")
+SECRETS_ENABLED=$(curl -s -H "X-Vault-Token: $ROOT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"secret/"' || echo "0")
 if [ "$SECRETS_ENABLED" = "0" ]; then
   echo "Enabling KV secrets engine..."
-  curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{"type":"kv","options":{"version":"2"}}' $VAULT_ADDR/v1/sys/mounts/secret
+  curl -s -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{"type":"kv","options":{"version":"2"}}' $VAULT_ADDR/v1/sys/mounts/secret
 fi
 
 # Enable Transit Secret Engine for encryption operations if not already enabled
-TRANSIT_ENABLED=$(curl -s -k -H "X-Vault-Token: $ROOT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"transit/"' || echo "0")
+TRANSIT_ENABLED=$(curl -s -H "X-Vault-Token: $ROOT_TOKEN" $VAULT_ADDR/v1/sys/mounts | grep -c '"transit/"' || echo "0")
 if [ "$TRANSIT_ENABLED" = "0" ]; then
   echo "Enabling Transit Secret Engine..."
-  curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{"type":"transit"}' $VAULT_ADDR/v1/sys/mounts/transit
+  curl -s -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{"type":"transit"}' $VAULT_ADDR/v1/sys/mounts/transit
   
   # Create encryption key for general use
-  curl -s -k -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{}' $VAULT_ADDR/v1/transit/keys/synapticore-key
+  curl -s -X POST -H "X-Vault-Token: $ROOT_TOKEN" -d '{}' $VAULT_ADDR/v1/transit/keys/synapticore-key
   
   echo "Transit Secret Engine enabled!"
 fi
 
-# Initialize secrets with vault cli
-# Note: We use the HTTP API directly for the initial checks above, but switch to the vault CLI 
-# for convenience when creating secrets
+# Vault CLI benötigt die korrekte Adresse
+export VAULT_ADDR="http://127.0.0.1:8200"
 
 # Generate random passwords if they don't exist in Vault
 if ! vault kv get -format=json secret/mongodb &>/dev/null; then

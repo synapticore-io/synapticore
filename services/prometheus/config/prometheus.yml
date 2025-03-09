@@ -15,9 +15,7 @@ scrape_configs:
     metrics_path: '/v1/sys/metrics'
     params:
       format: ['prometheus']
-    scheme: https
-    tls_config:
-      insecure_skip_verify: true
+    scheme: http
     static_configs:
       - targets: ['vault:8200']
 
