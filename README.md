@@ -1,5 +1,7 @@
 # Synapticore
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/N4N71WOHZ3)
+
 A flexible framework for building, managing, and orchestrating complex hierarchical multi-agent systems with support for multiple language models and MCP tool integration.
 
 ## Features
